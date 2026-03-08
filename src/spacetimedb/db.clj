@@ -8,41 +8,50 @@
             [jepsen.control.util :as cu]
             [jepsen.os.debian :as debian]))
 
-(def spacetimedb-files
-  "A map of all the SpacetimeDB file locations"
-  {:config-dir "/root/.config/spacetime/"
-   :binary "/root/.local/bin/spacetime"
-   :versions-dir "/root/.local/share/spacetime/bin"
-   :database-directory "/root/.local/share/spacetime/data"})
-
-(def app-dir
-  "Directory for application files."
+(def jepsen-dir
+  "Working directory for Jepsen."
   "/jepsen/jepsen-spacetimedb")
 
-(def pid-file (str app-dir "/spacetimedb.pid"))
+(def pid-file (str jepsen-dir "/spacetimedb.pid"))
 
 (def log-file-short "spacetimedb.log")
-(def log-file       (str app-dir "/" log-file-short))
+(def log-file       (str jepsen-dir "/" log-file-short))
 
-(def app-ps-name "spacetimedb")
+(def spacetimedb-ps-name "spacetimedb")
+
+(def spacetimedb-host "spacetimedb")
+(def spacetimedb-port 3000)
+(def spacetimedb-uri  (str "http://" spacetimedb-host ":" spacetimedb-port))
+
+(def pg-port 5432)
+
+(def spacetimedb-files
+  "A map of all the SpacetimeDB file locations"
+  {:local-dir  "/root/.local"
+   :config-dir "/root/.config"
+   :binary     "/root/.local/bin/spacetime"})
 
 (defn wipe
   "Wipes all local files.
    Assumes on node and privs for file deletion."
   []
   (c/exec :rm :-rf (vals spacetimedb-files))
-  (c/exec :rm :-rf app-dir))
+  (c/exec :rm :-rf jepsen-dir))
 
-(defn install-curl
+(defn install-packages
   []
   (debian/update!)
-  (debian/install [:curl]))
+  (debian/install [:curl :extrepo])
+  (c/su
+   (c/exec :extrepo :enable :node_25.x))
+  (debian/update!)
+  (debian/install [:nodejs]))
 
 (defn install-spacetimedb
   []
   (c/su
-   (c/exec :mkdir :--parents app-dir)
-   (c/cd app-dir
+   (c/exec :mkdir :--parents jepsen-dir)
+   (c/cd jepsen-dir
          (c/exec :curl :-sSf :--output :install-spacetimedb.sh "https://install.spacetimedb.com")
          (c/exec :chmod :a+x :install-spacetimedb.sh)
          (c/exec "./install-spacetimedb.sh" :--yes))))
@@ -55,7 +64,7 @@
       [this test node]
       (info "Setting up SpacetimeDB " node)
 
-      (install-curl)
+      (install-packages)
       (install-spacetimedb)
 
       (db/start! this test node)
@@ -84,36 +93,32 @@
         (do
           (c/su
            (cu/start-daemon!
-            {:chdir   app-dir
+            {:chdir   jepsen-dir
              :logfile log-file
              :pidfile pid-file}
-            (:binary spacetimedb-files)))
+            (:binary spacetimedb-files)
+            :start
+            :--pg-port pg-port
+            :--non-interactive))
           :started)))
 
     (kill!
       [_this _test _node]
-      ; TODO: understand why sporadic Exception with exit code of 137 when using Docker,
-      ;       for now, retrying is effective and safe 
       (c/su
-       (u/retry 1 (cu/grepkill! app-ps-name)))
+       (cu/grepkill! spacetimedb-ps-name))
       :killed)
 
     db/Pause
     (pause!
       [_this _test _node]
-      ; TODO: timeout is an attempt to workaround GitHub Action timeout
-      (u/timeout 1000 :grepkill-timeout
-                 (c/su
-                  (cu/grepkill! :stop app-ps-name))
-                 :paused))
+      (c/su
+       (cu/grepkill! :stop spacetimedb-ps-name))
+      :paused)
 
     (resume!
       [_this _test _node]
-      ; TODO: timeout is an attempt to workaround GitHub Action timeout
-      (u/timeout 1000 :grepkill-timeout
-                 (c/su
-                  (cu/grepkill! :cont app-ps-name))
-                 :resumed))))
+      (cu/grepkill! :cont spacetimedb-ps-name)
+      :resumed)))
 
 (defn noop-db
   "A no-op database."

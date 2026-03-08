@@ -90,7 +90,7 @@
                          :timeline           (timeline/html)
                          :stats              (checker/stats)
                          :exceptions         (checker/unhandled-exceptions)
-                         :logs-ps-client     (checker/log-file-pattern #"(SEVERE)|(ERROR)" db/log-file-short)
+                         :logs-ps-client     (checker/log-file-pattern #"(?i)(ERROR)" db/log-file-short)
                          :workload           (:checker workload)})
             :client    (:client workload)
             :nemesis   (:nemesis nemesis)

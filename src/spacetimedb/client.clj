@@ -3,7 +3,8 @@
             [clj-http.client :as http]
             [clojure.tools.logging :refer [info]]
             [jepsen.client :as client]
-            [slingshot.slingshot :refer [try+]]))
+            [slingshot.slingshot :refer [try+]]
+            [spacetimedb.db :as db]))
 
 (defn op->json
   "Given an op, encodes it as a json string."
@@ -121,10 +122,11 @@
 (defrecord SpacetimeDBClientNOOP [conn]
   client/Client
   (open!
-    [this _test node]
+    [this {:keys [nodes] :as _test} node]
+    (info "SpacetimeDBClientNOOP/open!(" this " {:nodes " nodes "} " node ")")
     (assoc this
            :node node
-           :url  (str "http://" node ":8089" "/sql-txn")))
+           :uri  db/spacetimedb-uri))
 
   (setup!
     [_this _test])
