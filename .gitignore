@@ -1,0 +1,6 @@
+.clj-kondo
+.lein-repl-history
+.lsp
+.vscode
+store
+target
