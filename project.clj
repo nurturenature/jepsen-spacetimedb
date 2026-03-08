@@ -5,7 +5,6 @@
             :url "http://www.apache.org/licenses/"}
   :dependencies [[org.clojure/clojure "1.12.4"]
                  [jepsen "0.3.11-SNAPSHOT"]
-                 [causal "0.1.0-SNAPSHOT"]
                  [cheshire "6.1.0"]
                  [clj-http "3.13.1"]]
   :jvm-opts ["-Xmx8g"

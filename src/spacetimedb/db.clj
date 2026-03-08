@@ -42,7 +42,10 @@
   []
   (c/su
    (c/exec :mkdir :--parents app-dir)
-   (c/exec :curl :-sSf "https://install.spacetimedb.com" :| :sh :--yes)))
+   (c/cd app-dir
+         (c/exec :curl :-sSf :--output :install-spacetimedb.sh "https://install.spacetimedb.com")
+         (c/exec :chmod :a+x :install-spacetimedb.sh)
+         (c/exec "./install-spacetimedb.sh" :--yes))))
 
 (defn db
   "Local SpacetimeDB database."
@@ -111,3 +114,46 @@
                  (c/su
                   (cu/grepkill! :cont app-ps-name))
                  :resumed))))
+
+(defn noop-db
+  "A no-op database."
+  []
+  (reify db/DB
+    (setup!
+      [_this _test node]
+      (info "Setting up noop-db " node))
+
+    (teardown!
+      [_this _test node]
+      (info "Tearing down noop-db " node))
+
+    ; noop-db doesn't have `primaries`.
+    ; db/Primary
+
+    ; noop-db doesn't have logs.
+    db/LogFiles
+    (log-files
+      [_db _test _node]
+      nil)
+
+    db/Kill
+    (start!
+      [_this _test node]
+      (info "Starting noop-db " node)
+      :started)
+
+    (kill!
+      [_this _test node]
+      (info "killing noop-db " node)
+      :killed)
+
+    db/Pause
+    (pause!
+      [_this _test node]
+      (info "Pausing noop-db " node)
+      :paused)
+
+    (resume!
+      [_this _test node]
+      (info "Starting noop-db " node)
+      :resumed)))

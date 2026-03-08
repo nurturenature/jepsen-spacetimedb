@@ -2,9 +2,7 @@
   "Nodes can have one of two roles:
    - :spacetimedb (one and only one node is the SpacetimeDB)
    - :client"
-  (:require [jepsen
-             [db :refer [noop]]
-             [role :as role]]
+  (:require [jepsen.role :as role]
             [spacetimedb.client :as client]
             [spacetimedb.db :as db]))
 
@@ -29,10 +27,10 @@
   "Given test opts, returns a composite DB that supports all of the roles.
    client-role nodes are no-ops for database setup/teardown/etc."
   [{:keys [] :as _opts}]
-  (role/db {spacetimedb-role db/db
-            client-role      noop}))
+  (role/db {spacetimedb-role (db/db)
+            client-role      (db/noop-db)}))
 
 (defn restricted-client
   "Returns a restricted client specific to the client-role."
   []
-  (role/restrict-client client-role client/->SpacetimeDBClientNOOP))
+  (role/restrict-client client-role (client/->SpacetimeDBClientNOOP nil)))
