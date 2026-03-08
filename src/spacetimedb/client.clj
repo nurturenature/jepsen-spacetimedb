@@ -129,12 +129,14 @@
            :uri  db/spacetimedb-uri))
 
   (setup!
-    [_this _test])
+    [this {:keys [nodes] :as _test}]
+    (info "SpacetimeDBClientNOOP/setup!(" this " {:nodes " nodes "})"))
 
   (invoke!
-    [_this _test op]
-    (info "client ignoring: " op)
-    (assoc op :type :ok))
+    [{:keys [node] :as _this} _test op]
+    (let [op  (assoc op :node node)]
+      (info "client ignoring: " op)
+      (assoc op :type :ok)))
 
   (teardown!
     [_this _test])
