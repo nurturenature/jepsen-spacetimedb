@@ -1,0 +1,11 @@
+default_server = "local"
+
+[[server_configs]]
+nickname = "maincloud"
+host = "maincloud.spacetimedb.com"
+protocol = "https"
+
+[[server_configs]]
+nickname = "local"
+host = "127.0.0.1:3000"
+protocol = "http"

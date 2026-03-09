@@ -120,6 +120,16 @@
       (cu/grepkill! :cont spacetimedb-ps-name)
       :resumed)))
 
+;; /root/.local/bin/spacetime init --local --template nodejs-ts wr-register
+;; /root/.local/bin/spacetime server set-default local
+;; edit *.json main -> local
+;; cd wr-register/
+;; /root/.local/bin/spacetime generate wr-register --lang typescript --out-dir src/module_bindings
+
+;; ?? /root/.config/spacetime/cli.toml, just run set-default?
+;; /root/.local/bin/spacetime build
+;; /root/.local/bin/spacetime publish --server local wr-register
+;; SPACETIMEDB_DB_NAME=wr-register npm run dev
 (defn noop-db
   "A no-op database."
   []
