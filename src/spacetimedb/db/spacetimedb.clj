@@ -69,14 +69,17 @@
   []
   (c/su
    (c/exec :mkdir :--parents jepsen-dir)
-   (c/cd jepsen-dir
-         ; download and install binary
-         (c/exec :curl :-sSf :--output :install-spacetimedb.sh "https://install.spacetimedb.com")
-         (c/exec :chmod :a+x :install-spacetimedb.sh)
-         (c/exec "./install-spacetimedb.sh" :--yes)
 
-         ; configuring should also create config $data-dir/cli.toml
-         (c/exec (:binary spacetimedb-files) :server :set-default :local))))
+   (if (cu/exists? (:binary spacetimedb-files))
+     (info "using existing SpacetimeDB binary")
+     (c/cd jepsen-dir
+           ; download and install binary
+           (c/exec :curl :-sSf :--output :install-spacetimedb.sh "https://install.spacetimedb.com")
+           (c/exec :chmod :a+x :install-spacetimedb.sh)
+           (c/exec "./install-spacetimedb.sh" :--yes)
+
+           ; configuring should also create config $data-dir/cli.toml
+           (c/exec (:binary spacetimedb-files) :server :set-default :local)))))
 
 (defn configure-wr-register
   "Configure SpacetimeDB for a wr-register.
@@ -123,8 +126,10 @@
       (info "Tearing down SpacetimeDB " node)
       (db/kill! this test node)
 
-      (c/su
-       (wipe))
+      (if (:no-wipe test)
+        (info "--no-wipe is set, setup files are preserved and not deleted")
+        (c/su
+         (wipe)))
 
       (swap! spacetimedb-started? (constantly false)))
 

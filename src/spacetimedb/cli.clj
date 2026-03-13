@@ -133,6 +133,9 @@
     :parse-fn read-string
     :validate [pos? "Must be a positive number."]]
 
+   [nil "--no-wipe" "If set, do not wipe files when tearing down nodes."
+    :default false]
+
    ["-r" "--rate HZ" "Approximate request rate, in hz"
     :default 100
     :parse-fn read-string

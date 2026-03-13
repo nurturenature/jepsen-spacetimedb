@@ -63,8 +63,10 @@
       (info "Tearing down client-node " node)
       (db/kill! this test node)
 
-      (c/su
-       (wipe)))
+      (if (:no-wipe test)
+        (info "--no-wipe is set, setup files are preserved and not deleted")
+        (c/su
+         (wipe))))
 
     ; client-node doesn't have `primaries`.
     ; db/Primary
