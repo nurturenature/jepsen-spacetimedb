@@ -16,9 +16,11 @@
             [spacetimedb
              [cli :as cli]
              [client :as client]
-             [db :as db]
              [nemesis :as nemesis]
-             [workload :as workload]]))
+             [workload :as workload]]
+            [spacetimedb.db
+             [client-node :as client-node]
+             [spacetimedb :as stdb]]))
 
 (def spacetimedb_endpoint
   "http://localhost:8989/sql-txn")

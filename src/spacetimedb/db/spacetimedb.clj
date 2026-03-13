@@ -1,4 +1,4 @@
-(ns spacetimedb.db
+(ns spacetimedb.db.spacetimedb
   "A local SpacetimeDB database."
   (:require [clojure.tools.logging :refer [info]]
             [jepsen
@@ -11,6 +11,10 @@
 (def jepsen-dir
   "Working directory for Jepsen."
   "/jepsen/jepsen-spacetimedb")
+
+(def client-dir
+  "TypeScript client directory."
+  (str jepsen-dir "/jepsen-spacetimedb/wr-register"))
 
 (def pid-file (str jepsen-dir "/spacetimedb.pid"))
 
@@ -38,25 +42,65 @@
   (c/exec :rm :-rf (vals spacetimedb-files))
   (c/exec :rm :-rf jepsen-dir))
 
-(defn install-packages
+(defn install-nodejs
   []
   (debian/update!)
-  (debian/install [:curl :extrepo])
+  (debian/install [:extrepo])
   (c/su
    (c/exec :extrepo :enable :node_25.x))
   (debian/update!)
   (debian/install [:nodejs]))
+
+(defn install-packages
+  []
+  (debian/update!)
+  (debian/install [:curl :git])
+  (install-nodejs))
+
+(defn install-repository
+  "Installs or updates GitHub repository in current directory."
+  []
+  (if (cu/exists? "jepsen-spacetimedb/.git")
+    (c/cd "jepsen-spacetimedb"
+          (c/exec :git :pull))
+    (c/exec :git :clone :-b :main :--depth :1 :--single-branch "https://github.com/nurturenature/jepsen-spacetimedb.git")))
 
 (defn install-spacetimedb
   []
   (c/su
    (c/exec :mkdir :--parents jepsen-dir)
    (c/cd jepsen-dir
+         ; download and install binary
          (c/exec :curl :-sSf :--output :install-spacetimedb.sh "https://install.spacetimedb.com")
          (c/exec :chmod :a+x :install-spacetimedb.sh)
-         (c/exec "./install-spacetimedb.sh" :--yes))))
+         (c/exec "./install-spacetimedb.sh" :--yes)
 
-(defn db
+         ; configuring should also create config $data-dir/cli.toml
+         (c/exec (:binary spacetimedb-files) :server :set-default :local))))
+
+(defn configure-wr-register
+  "Configure SpacetimeDB for a wr-register.
+   Expects SpacetimeDB to be started."
+  []
+  (c/cd jepsen-dir
+        (install-repository))
+
+  ; build and publish our SpacetimeDB modules
+  (c/cd client-dir
+        ; as SpacetimeDB client is TypeScript, will need npm modules
+        (c/exec :npm :install)
+
+        ; shouldn't have to generate bindings, they are in repository,
+        ; but generation from source keeps us honest
+        (c/exec (:binary spacetimedb-files) :generate :wr-register :--lang :typescript :--out-dir "src/module_bindings")
+
+        (c/exec (:binary spacetimedb-files) :build)
+
+        (c/exec (:binary spacetimedb-files) :publish :--yes :--server :local :wr-register)))
+
+(def spacetimedb-started? (atom false))
+
+(defn stdb
   "Local SpacetimeDB database."
   []
   (reify db/DB
@@ -68,14 +112,21 @@
       (install-spacetimedb)
 
       (db/start! this test node)
-      (u/sleep 1000)) ; TODO: sleep for 1s to allow endpoint to come up, should be retry http connection
+      (u/sleep 1000) ; TODO: sleep for 1s to allow endpoint to come up, should be retry http connection
+
+      (configure-wr-register)
+
+      (swap! spacetimedb-started? (constantly true)))
 
     (teardown!
       [this test node]
       (info "Tearing down SpacetimeDB " node)
       (db/kill! this test node)
+
       (c/su
-       (wipe)))
+       (wipe))
+
+      (swap! spacetimedb-started? (constantly false)))
 
     ; SpacetimeDB doesn't have `primaries`.
     ; db/Primary
@@ -118,57 +169,4 @@
     (resume!
       [_this _test _node]
       (cu/grepkill! :cont spacetimedb-ps-name)
-      :resumed)))
-
-;; /root/.local/bin/spacetime init --local --template nodejs-ts wr-register
-;; /root/.local/bin/spacetime server set-default local
-;; edit *.json main -> local
-;; cd wr-register/
-;; /root/.local/bin/spacetime generate wr-register --lang typescript --out-dir src/module_bindings
-
-;; ?? /root/.config/spacetime/cli.toml, just run set-default?
-;; /root/.local/bin/spacetime build
-;; /root/.local/bin/spacetime publish --server local wr-register
-;; SPACETIMEDB_DB_NAME=wr-register npm run dev
-(defn noop-db
-  "A no-op database."
-  []
-  (reify db/DB
-    (setup!
-      [_this _test node]
-      (info "Setting up noop-db " node))
-
-    (teardown!
-      [_this _test node]
-      (info "Tearing down noop-db " node))
-
-    ; noop-db doesn't have `primaries`.
-    ; db/Primary
-
-    ; noop-db doesn't have logs.
-    db/LogFiles
-    (log-files
-      [_db _test _node]
-      nil)
-
-    db/Kill
-    (start!
-      [_this _test node]
-      (info "Starting noop-db " node)
-      :started)
-
-    (kill!
-      [_this _test node]
-      (info "killing noop-db " node)
-      :killed)
-
-    db/Pause
-    (pause!
-      [_this _test node]
-      (info "Pausing noop-db " node)
-      :paused)
-
-    (resume!
-      [_this _test node]
-      (info "Starting noop-db " node)
       :resumed)))

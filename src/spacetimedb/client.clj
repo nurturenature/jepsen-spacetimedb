@@ -4,7 +4,7 @@
             [clojure.tools.logging :refer [info]]
             [jepsen.client :as client]
             [slingshot.slingshot :refer [try+]]
-            [spacetimedb.db :as db]))
+            [spacetimedb.db.spacetimedb :as stdb]))
 
 (defn op->json
   "Given an op, encodes it as a json string."
@@ -126,7 +126,7 @@
     (info "SpacetimeDBClientNOOP/open!(" this " {:nodes " nodes "} " node ")")
     (assoc this
            :node node
-           :uri  db/spacetimedb-uri))
+           :uri  stdb/spacetimedb-uri))
 
   (setup!
     [this {:keys [nodes] :as _test}]

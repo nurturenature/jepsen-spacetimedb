@@ -9,9 +9,11 @@
             [jepsen.checker.timeline :as timeline]
             [jepsen.os.debian :as debian]
             [spacetimedb
-             [db :as db]
              [nemesis :as nemesis]
-             [workload :as workload]]))
+             [workload :as workload]]
+            [spacetimedb.db
+             [client-node :as client-node]
+             [spacetimedb :as stdb]]))
 
 (def workloads
   "A map of workload names to functions that take CLI options and return
@@ -90,7 +92,7 @@
                          :timeline           (timeline/html)
                          :stats              (checker/stats)
                          :exceptions         (checker/unhandled-exceptions)
-                         :logs-ps-client     (checker/log-file-pattern #"(?i)(ERROR)" db/log-file-short)
+                         :logs-ps-client     (checker/log-file-pattern #"(?i)(ERROR)" stdb/log-file-short)
                          :workload           (:checker workload)})
             :client    (:client workload)
             :nemesis   (:nemesis nemesis)
