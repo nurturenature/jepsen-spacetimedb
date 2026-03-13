@@ -25,7 +25,7 @@
 
 (def spacetimedb-host "spacetimedb")
 (def spacetimedb-port 3000)
-(def spacetimedb-uri  (str "http://" spacetimedb-host ":" spacetimedb-port))
+(def spacetimedb-uri  (str "ws://" spacetimedb-host ":" spacetimedb-port))
 
 (def pg-port 5432)
 
@@ -78,7 +78,7 @@
            (c/exec :chmod :a+x :install-spacetimedb.sh)
            (c/exec "./install-spacetimedb.sh" :--yes)
 
-           ; configuring should also create config $data-dir/cli.toml
+           ; configuring should also create config ~/.config/spacetime/cli.toml
            (c/exec (:binary spacetimedb-files) :server :set-default :local)))))
 
 (defn configure-wr-register

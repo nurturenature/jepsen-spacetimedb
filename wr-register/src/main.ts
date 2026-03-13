@@ -1,3 +1,4 @@
+import dotenv from 'dotenv';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
@@ -9,8 +10,9 @@ import {
 } from './module_bindings/index.js';
 
 // Configuration
-const HOST = process.env.SPACETIMEDB_HOST ?? 'ws://localhost:3000';
-const DB_NAME = process.env.SPACETIMEDB_DB_NAME ?? 'nodejs-ts';
+dotenv.config({ path: './.env.local' });
+const HOST = process.env.SPACETIMEDB_HOST ?? 'ws://spacetimedb:3000';
+const DB_NAME = process.env.SPACETIMEDB_DB_NAME ?? 'wr-register';
 
 // Main entry point
 async function main(): Promise<void> {
