@@ -17,7 +17,7 @@ Lets develop a suite of Jepsen tests for SpacetimeDB to see what we can learn, a
 
 ## Current Status
 
-Working on automating install, start/stop/etc of SpacetimeDB client for a `wr-register`.
+Working on schema and simple reducers for a `wr-register`.
 
 ----
 
@@ -25,5 +25,9 @@ Working on automating install, start/stop/etc of SpacetimeDB client for a `wr-re
 
 Tests can
 
-- install, teardown and manage the SpacetimeDB node
-- build and publish a `Module` for a `wr-register` into the database
+- SpacetimeDB
+  - install, teardown and manage the SpacetimeDB node
+  - build and publish a `Module` for a `wr-register` into the database
+
+- Client Nodes
+  - install, teardown, and manage client nodes

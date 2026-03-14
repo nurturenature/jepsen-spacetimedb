@@ -10,9 +10,7 @@ import {
   type Infer as __Infer,
 } from "spacetimedb";
 
-export const Registers = __t.object("Registers", {
+export default {
   k: __t.i64(),
   v: __t.i64(),
-});
-export type Registers = __Infer<typeof Registers>;
-
+};

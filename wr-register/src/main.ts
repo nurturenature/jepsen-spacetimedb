@@ -44,14 +44,14 @@ function onConnect(
   conn
     .subscriptionBuilder()
     .onApplied(ctx => {
-      // Show current people
-      const people = [...ctx.db.person.iter()];
-      console.log(`\nCurrent people (${people.length}):`);
-      if (people.length === 0) {
-        console.log('  (none yet)');
+      // Show current registers
+      const registers = [...ctx.db.registers.iter()];
+      console.log(`\nCurrent registers (${registers.length}):`);
+      if (registers.length === 0) {
+        console.log('\t', '(none yet)');
       } else {
-        for (const person of people) {
-          console.log(`  - ${person.name}`);
+        for (const register of registers) {
+          console.log('\t', { k: register.k, v: register.v });
         }
       }
 
@@ -63,12 +63,12 @@ function onConnect(
     .subscribeToAllTables();
 
   // Register callbacks for table changes
-  conn.db.person.onInsert((_ctx: EventContext, person) => {
-    console.log(`[Added] ${person.name}`);
+  conn.db.registers.onInsert((_ctx: EventContext, register) => {
+    console.log('[Added] ', register);
   });
 
-  conn.db.person.onDelete((_ctx: EventContext, person) => {
-    console.log(`[Removed] ${person.name}`);
+  conn.db.registers.onDelete((_ctx: EventContext, register) => {
+    console.log('[Removed] ', register);
   });
 }
 

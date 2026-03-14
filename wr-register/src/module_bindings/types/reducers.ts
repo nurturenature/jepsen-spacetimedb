@@ -6,9 +6,11 @@
 import { type Infer as __Infer } from "spacetimedb";
 
 // Import all reducer arg schemas
-import AddReducer from "../add_reducer";
-import SayHelloReducer from "../say_hello_reducer";
+import DeleteRegisterReducer from "../delete_register_reducer";
+import InsertRegisterReducer from "../insert_register_reducer";
+import ListRegistersReducer from "../list_registers_reducer";
 
-export type AddParams = __Infer<typeof AddReducer>;
-export type SayHelloParams = __Infer<typeof SayHelloReducer>;
+export type DeleteRegisterParams = __Infer<typeof DeleteRegisterReducer>;
+export type InsertRegisterParams = __Infer<typeof InsertRegisterReducer>;
+export type ListRegistersParams = __Infer<typeof ListRegistersReducer>;
 

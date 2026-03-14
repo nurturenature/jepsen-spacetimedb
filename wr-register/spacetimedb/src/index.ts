@@ -1,10 +1,11 @@
 import { schema, table, t } from 'spacetimedb/server';
 
 const spacetimedb = schema({
-  person: table(
+  registers: table(
     { public: true },
     {
-      name: t.string(),
+      k: t.i64().primaryKey(),
+      v: t.i64(),
     }
   ),
 });
@@ -22,16 +23,23 @@ export const onDisconnect = spacetimedb.clientDisconnected(_ctx => {
   // Called every time a client disconnects
 });
 
-export const add = spacetimedb.reducer(
-  { name: t.string() },
-  (ctx, { name }) => {
-    ctx.db.person.insert({ name });
+export const insertRegister = spacetimedb.reducer(
+  { k: t.i64(), v: t.i64() },
+  (ctx, { k, v }) => {
+    ctx.db.registers.insert({ k, v });
   }
 );
 
-export const sayHello = spacetimedb.reducer(ctx => {
-  for (const person of ctx.db.person.iter()) {
-    console.info(`Hello, ${person.name}!`);
+export const deleteRegister = spacetimedb.reducer(
+  { k: t.i64(), v: t.i64() },
+  (ctx, { k, v }) => {
+    ctx.db.registers.delete({ k, v });
   }
-  console.info('Hello, World!');
+);
+
+export const listRegisters = spacetimedb.reducer(ctx => {
+  console.info('listRegisters:');
+  for (const register of ctx.db.registers.iter()) {
+    console.info('\t', { k: register.k, v: register.v });
+  }
 });
