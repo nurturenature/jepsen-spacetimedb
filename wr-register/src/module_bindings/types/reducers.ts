@@ -9,8 +9,12 @@ import { type Infer as __Infer } from "spacetimedb";
 import DeleteRegisterReducer from "../delete_register_reducer";
 import InsertRegisterReducer from "../insert_register_reducer";
 import ListRegistersReducer from "../list_registers_reducer";
+import UpdateRegisterReducer from "../update_register_reducer";
+import UpsertRegisterReducer from "../upsert_register_reducer";
 
 export type DeleteRegisterParams = __Infer<typeof DeleteRegisterReducer>;
 export type InsertRegisterParams = __Infer<typeof InsertRegisterReducer>;
 export type ListRegistersParams = __Infer<typeof ListRegistersReducer>;
+export type UpdateRegisterParams = __Infer<typeof UpdateRegisterReducer>;
+export type UpsertRegisterParams = __Infer<typeof UpsertRegisterReducer>;
 

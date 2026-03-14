@@ -19,7 +19,7 @@ async function main(): Promise<void> {
   console.log(`  Module: ${DB_NAME}`);
 
   // Build and establish connection
-  DbConnection.builder()
+  const conn = DbConnection.builder()
     .withUri(HOST)
     .withDatabaseName(DB_NAME)
     .withToken(loadToken())
@@ -27,6 +27,21 @@ async function main(): Promise<void> {
     .onDisconnect(onDisconnect)
     .onConnectError(onConnectError)
     .build();
+
+  // TODO: remove, tmp debugging
+  console.log('insert 0 0');
+  conn.reducers.insertRegister({ k: BigInt(0), v: BigInt(0) });
+  console.log('insert 1 0');
+  conn.reducers.insertRegister({ k: BigInt(1), v: BigInt(0) });
+
+  console.log('update 0 1');
+  conn.reducers.updateRegister({ k: BigInt(0), v: BigInt(1) });
+
+  console.log('upsert 1 1');
+  conn.reducers.upsertRegister({ k: BigInt(1), v: BigInt(1) });
+
+  conn.reducers.listRegisters();
+
 }
 
 function onConnect(

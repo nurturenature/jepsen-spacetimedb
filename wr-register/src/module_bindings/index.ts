@@ -37,6 +37,8 @@ import {
 import DeleteRegisterReducer from "./delete_register_reducer";
 import InsertRegisterReducer from "./insert_register_reducer";
 import ListRegistersReducer from "./list_registers_reducer";
+import UpdateRegisterReducer from "./update_register_reducer";
+import UpsertRegisterReducer from "./upsert_register_reducer";
 
 // Import all procedure arg schemas
 
@@ -65,6 +67,8 @@ const reducersSchema = __reducers(
   __reducerSchema("delete_register", DeleteRegisterReducer),
   __reducerSchema("insert_register", InsertRegisterReducer),
   __reducerSchema("list_registers", ListRegistersReducer),
+  __reducerSchema("update_register", UpdateRegisterReducer),
+  __reducerSchema("upsert_register", UpsertRegisterReducer),
 );
 
 /** The schema information for all procedures in this module. This is defined the same way as the procedures would have been defined in the server. */

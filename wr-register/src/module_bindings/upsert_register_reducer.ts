@@ -12,4 +12,5 @@ import {
 
 export default {
   k: __t.i64(),
+  v: __t.i64(),
 };

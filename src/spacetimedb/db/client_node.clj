@@ -14,7 +14,7 @@
 (def log-file-short "client-node.log")
 (def log-file       (str stdb/jepsen-dir "/" log-file-short))
 
-(def client-node-ps-name "npm")
+(def client-node-ps-name "node")
 
 (defn wipe
   "Wipes all local files.
