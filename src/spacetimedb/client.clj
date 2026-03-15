@@ -1,10 +1,12 @@
 (ns spacetimedb.client
+  "A SpacetimeDB client is a URI to a SpacetimeDB server.
+   `db/invoke!` is a HTTP call to the server that returns the results in the `op`."
   (:require [cheshire.core :as json]
             [clj-http.client :as http]
             [clojure.tools.logging :refer [info]]
             [jepsen.client :as client]
             [slingshot.slingshot :refer [try+]]
-            [spacetimedb.db.spacetimedb :as stdb]))
+            [spacetimedb.db.client-node :as client-node]))
 
 (defn op->json
   "Given an op, encodes it as a json string."
@@ -99,7 +101,7 @@
     [this {:keys [client-timeout] :as _test} node]
     (assoc this
            :node    node
-           :url     (str "http://" node ":8089" "/sql-txn")
+           :uri     (client-node/client-uri node)
            :timeout (* client-timeout 1000)))
 
   (setup!
@@ -117,7 +119,8 @@
     [this _test]
     (dissoc this
             :node
-            :url)))
+            :uri
+            :timeout)))
 
 (defrecord SpacetimeDBClientNOOP [conn]
   client/Client
@@ -126,7 +129,7 @@
     (info "SpacetimeDBClientNOOP/open!(" this " {:nodes " nodes "} " node ")")
     (assoc this
            :node node
-           :uri  stdb/spacetimedb-uri))
+           :uri  nil))
 
   (setup!
     [this {:keys [nodes] :as _test}]
@@ -145,4 +148,4 @@
     [this _test]
     (dissoc this
             :node
-            :url)))
+            :uri)))

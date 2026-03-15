@@ -41,6 +41,7 @@ import UpdateRegisterReducer from "./update_register_reducer";
 import UpsertRegisterReducer from "./upsert_register_reducer";
 
 // Import all procedure arg schemas
+import * as TxnProcedure from "./txn_procedure";
 
 // Import all table schema definitions
 import RegistersRow from "./registers_table";
@@ -73,6 +74,7 @@ const reducersSchema = __reducers(
 
 /** The schema information for all procedures in this module. This is defined the same way as the procedures would have been defined in the server. */
 const proceduresSchema = __procedures(
+  __procedureSchema("txn", TxnProcedure.params, TxnProcedure.returnType),
 );
 
 /** The remote SpacetimeDB module schema, both runtime and type information. */

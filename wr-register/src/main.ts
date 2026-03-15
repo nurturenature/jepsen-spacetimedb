@@ -1,3 +1,4 @@
+import { assert } from 'console';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
@@ -7,6 +8,9 @@ import {
   ErrorContext,
   EventContext,
 } from './module_bindings/index.js';
+
+import http from 'http';
+import url from 'url';
 
 // Configuration
 const HOST = process.env.SPACETIMEDB_HOST ?? 'ws://spacetimedb:3000';
@@ -42,6 +46,44 @@ async function main(): Promise<void> {
 
   conn.reducers.listRegisters();
 
+  //
+  // REST API for Jepsen transactions
+  //
+
+  const port = process.env.CLIENT_PORT || '3000';
+  const portNumber = Number.parseInt(port);
+
+  const endpoint = http.createServer((req, res) => {
+    // we only know how to handle POSTs to /txn
+    const { method } = req;
+    const parsedUrl = url.parse(req.url!, true);
+    assert(
+      (method == 'POST') && (parsedUrl.path == '/txn'),
+      `Invalid HTTP method / path: ${method} / ${parsedUrl.path}`);
+
+    // body is a String representing a Jepsen txn as JSON
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+
+    req.on('end', async () => {
+      try {
+        const txn = await conn.procedures.txn(body);
+        const value = JSON.parse(txn);
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ type: 'ok', value: value }));
+      } catch (error) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ type: 'info', error: error }));
+      }
+    });
+  });
+
+  endpoint.listen(portNumber, 'localhost', () => {
+    console.log(`endpoint running at http://localhost:${port}`);
+  });
 }
 
 function onConnect(

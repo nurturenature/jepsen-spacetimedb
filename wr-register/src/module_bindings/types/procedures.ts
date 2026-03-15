@@ -6,5 +6,8 @@
 import { type Infer as __Infer } from "spacetimedb";
 
 // Import all procedure arg schemas
+import * as TxnProcedure from "../txn_procedure";
 
+export type TxnArgs = __Infer<typeof TxnProcedure.params>;
+export type TxnResult = __Infer<typeof TxnProcedure.returnType>;
 

@@ -16,6 +16,11 @@
 
 (def client-node-ps-name "node")
 
+(defn client-uri
+  "Give a node, return a client URI for that node."
+  [node]
+  (str "http://" node ":3000"))
+
 (defn wipe
   "Wipes all local files.
    Assumes on node and privs for file deletion."

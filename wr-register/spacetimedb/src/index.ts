@@ -71,3 +71,30 @@ export const listRegisters = spacetimedb.reducer(ctx => {
     console.info('\t', { k: register.k, v: register.v });
   }
 });
+
+export const txn = spacetimedb.procedure(
+  { value: t.string() },
+  t.string(),
+  (ctx, { value }) => {
+    const txn = JSON.parse(value);
+    const res = Array();
+
+    ctx.withTx(ctx => {
+      for (const mop of txn)
+        switch (mop.f) {
+          case 'r':
+            const read = ctx.db.registers.k.find(mop.k);
+            if (read == null) {
+              res.push({ 'f': 'r', 'k': mop.k, 'v': null })
+            } else {
+              res.push({ 'f': 'r', 'k': mop.k, 'v': read.v })
+            }
+            break;
+          case 'w':
+            upsertRegister(ctx, { k: mop.k, v: mop.v });
+            res.push(mop)
+            break;
+        }
+    });
+    return JSON.stringify(res);
+  });
