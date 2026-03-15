@@ -69,14 +69,22 @@ async function main(): Promise<void> {
 
     req.on('end', async () => {
       try {
+        console.log(`[endpoint] request: ${body}`);
+
         const txn = await conn.procedures.txn(body);
         const value = JSON.parse(txn);
+        const response = JSON.stringify({ type: 'ok', value: value });
+
+        console.log(`[endpoint] response: ${response}`);
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ type: 'ok', value: value }));
+        res.end(response);
       } catch (error) {
+        const response = JSON.stringify({ type: 'info', error: error });
+        console.log(`[endpoint] response: ${response}`);
+
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ type: 'info', error: error }));
+        res.end(response);
       }
     });
   });
@@ -121,11 +129,15 @@ function onConnect(
 
   // Register callbacks for table changes
   conn.db.registers.onInsert((_ctx: EventContext, register) => {
-    console.log('[Added] ', register);
+    console.log('[onInsert] ', register);
   });
 
   conn.db.registers.onDelete((_ctx: EventContext, register) => {
-    console.log('[Removed] ', register);
+    console.log('[onDelete] ', register);
+  });
+
+  conn.db.registers.onUpdate((_ctx: EventContext, register) => {
+    console.log('[onUpdate] ', register);
   });
 }
 
