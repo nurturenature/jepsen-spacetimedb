@@ -4,8 +4,8 @@ const spacetimedb = schema({
   registers: table(
     { public: true },
     {
-      k: t.i64().primaryKey(),
-      v: t.i64(),
+      k: t.i32().primaryKey(),
+      v: t.i32(),
     }
   ),
 });
@@ -27,21 +27,21 @@ export const onDisconnect = spacetimedb.clientDisconnected(_ctx => {
 // https://spacetimedb.com/docs/functions/reducers/#accessing-tables
 
 export const insertRegister = spacetimedb.reducer(
-  { k: t.i64(), v: t.i64() },
+  { k: t.i32(), v: t.i32() },
   (ctx, { k, v }) => {
     ctx.db.registers.insert({ k, v });
   }
 );
 
 export const deleteRegister = spacetimedb.reducer(
-  { k: t.i64() },
+  { k: t.i32() },
   (ctx, { k }) => {
     ctx.db.registers.k.delete(k);
   }
 );
 
 export const updateRegister = spacetimedb.reducer(
-  { k: t.i64(), v: t.i64() },
+  { k: t.i32(), v: t.i32() },
   (ctx, { k, v }) => {
     const register = ctx.db.registers.k.find(k);
     if (!register) {
@@ -53,7 +53,7 @@ export const updateRegister = spacetimedb.reducer(
 );
 
 export const upsertRegister = spacetimedb.reducer(
-  { k: t.i64(), v: t.i64() },
+  { k: t.i32(), v: t.i32() },
   (ctx, { k, v }) => {
     const register = ctx.db.registers.k.find(k);
     if (register) {
@@ -74,8 +74,8 @@ export const listRegisters = spacetimedb.reducer(ctx => {
 
 // TODO: put in a shared type location for SpacetimeDB client
 type F = 'r' | 'w';
-type K = bigint;
-type V = bigint | null;
+type K = number;
+type V = number | null;
 type MOP = [F, K, V,];
 type TXN = MOP[];
 

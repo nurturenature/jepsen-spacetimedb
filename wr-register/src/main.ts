@@ -41,8 +41,8 @@ async function main(): Promise<void> {
 
   // TODO: put in a shared type location for SpacetimeDB server
   type F = 'r' | 'w';
-  type K = bigint;
-  type V = bigint | null;
+  type K = number;
+  type V = number | null;
   type MOP = [F, K, V,];
   type TXN = MOP[];
 
@@ -66,7 +66,7 @@ async function main(): Promise<void> {
         console.log(`[endpoint] request: body: "${body}"`);
 
         // TODO: document and work-a-round the extra parse, stringify
-        const result = await conn.procedures.txn(body);
+        const result = await conn.procedures.txn({ value: body });
         const txn: TXN = JSON.parse(result) as TXN;
         const response = JSON.stringify({ type: 'ok', value: txn });
 

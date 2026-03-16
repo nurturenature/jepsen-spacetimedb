@@ -27,8 +27,8 @@ const spacetimedb = schema({
   registers: table(
     { public: true },
     {
-      k: t.i64().primaryKey(),
-      v: t.i64(),
+      k: t.i32().primaryKey(),
+      v: t.i32(),
     }
   ),
 });
@@ -46,7 +46,7 @@ There is no builtin `upsert` functionality, so a `Reducer` is published to the d
 
 ```typescript
 export const upsertRegister = spacetimedb.reducer(
-  { k: t.i64(), v: t.i64() },
+  { k: t.i32(), v: t.i32() },
   (ctx, { k, v }) => {
     const register = ctx.db.registers.k.find(k);
     if (register) {

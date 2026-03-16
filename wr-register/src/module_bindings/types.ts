@@ -11,8 +11,8 @@ import {
 } from "spacetimedb";
 
 export const Registers = __t.object("Registers", {
-  k: __t.i64(),
-  v: __t.i64(),
+  k: __t.i32(),
+  v: __t.i32(),
 });
 export type Registers = __Infer<typeof Registers>;
 

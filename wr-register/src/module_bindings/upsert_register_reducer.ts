@@ -11,6 +11,6 @@ import {
 } from "spacetimedb";
 
 export default {
-  k: __t.i64(),
-  v: __t.i64(),
+  k: __t.i32(),
+  v: __t.i32(),
 };

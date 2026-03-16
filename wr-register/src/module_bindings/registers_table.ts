@@ -11,6 +11,6 @@ import {
 } from "spacetimedb";
 
 export default __t.row({
-  k: __t.i64().primaryKey(),
-  v: __t.i64(),
+  k: __t.i32().primaryKey(),
+  v: __t.i32(),
 });
