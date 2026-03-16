@@ -11,10 +11,12 @@
     "spacetime:generate": "spacetime generate --lang typescript --out-dir src/module_bindings --module-path spacetimedb"
   },
   "dependencies": {
-    "spacetimedb": "^2.0.4"
+    "spacetimedb": "^2.0.4",
+    "whatwg-url": "^16.0.1"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
+    "@types/whatwg-url": "^13.0.0",
     "esbuild": "^0.27.4",
     "typescript": "~5.9.3"
   }

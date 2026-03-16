@@ -10,7 +10,7 @@ import {
 } from './module_bindings/index.js';
 
 import http from 'http';
-import url from 'url';
+import { parseURL } from 'whatwg-url';
 
 // Configuration
 const HOST = process.env.SPACETIMEDB_HOST ?? 'ws://spacetimedb:3000';
@@ -49,7 +49,7 @@ async function main(): Promise<void> {
   const endpoint = http.createServer((req, res) => {
     // we only know how to handle POSTs to /txn
     const { method } = req;
-    const parsedUrl = url.parse(req.url!, true);
+    const parsedUrl = parseURL(req.url!)!;
     assert(
       (method == 'POST') && (parsedUrl.path == '/txn'),
       `Invalid HTTP method / path: ${method} / ${parsedUrl.path}`);
