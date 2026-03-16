@@ -1,4 +1,3 @@
-import { assert } from 'node:console';
 import { schema, table, t } from 'spacetimedb/server';
 
 const spacetimedb = schema({
