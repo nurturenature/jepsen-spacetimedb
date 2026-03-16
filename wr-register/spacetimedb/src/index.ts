@@ -79,6 +79,8 @@ export const txn = spacetimedb.procedure(
     const txn = JSON.parse(value);
     const res = Array();
 
+    console.log(`[stdb] txn: ${txn}`);
+
     ctx.withTx(ctx => {
       for (const mop of txn)
         switch (mop.f) {
@@ -96,5 +98,8 @@ export const txn = spacetimedb.procedure(
             break;
         }
     });
-    return JSON.stringify(res);
+
+    const result = JSON.stringify(res);
+    console.log(`[stdb] result: ${result}`);
+    return result;
   });

@@ -34,4 +34,4 @@
 (defn restricted-client
   "Returns a restricted client specific to the client-role."
   []
-  (role/restrict-client client-role (client/->SpacetimeDBClientNOOP nil)))
+  (role/restrict-client client-role (client/->SpacetimeDBClient nil)))

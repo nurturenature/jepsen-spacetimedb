@@ -15,14 +15,7 @@
       (update :value (fn [value]
                        (->> value
                             (mapv (fn [[f k v :as _mop]]
-                                    ; JSON requires Maps with String keys
-                                    (let [v (if (= f :writeSome)
-                                              (->> v
-                                                   (map (fn [[k v]]
-                                                          [(str k) v]))
-                                                   (into {}))
-                                              v)]
-                                      {:f f :k k :v v}))))))
+                                    {:f f :k k :v v})))))
       json/generate-string))
 
 (defn json->op
@@ -30,32 +23,22 @@
   [json-string]
   (-> json-string
       (json/decode true)
-      (select-keys [:type :f :value])
+      (select-keys [:type :f :value :error])
       (update :type  keyword)
-      (update :f     keyword)
-      (update :value (partial mapv (fn [{:keys [f k v]}]
-                                     (let [f (keyword f)
-                                           ; JSON Maps had Strings as keys,
-                                           ; which json/decode will have turned into keywords
-                                           v (if (contains? #{:readAll :writeSome} f)
-                                               (->> v
-                                                    (map (fn [[k v]]
-                                                           [(parse-long (name k)) v]))
-                                                    (into (sorted-map)))
-                                               v)]
-                                       [f k v]))))))
+      (update :f     keyword)))
 
 (defn invoke
   "Invokes the op against the endpoint and returns the result."
   [op endpoint timeout]
-  (let [body   (-> (select-keys op [:type :f :value]) ; don't expose rest of op map 
+  (let [body   (-> op
+                   (select-keys [:type :f :value]) ; don't expose rest of op map 
                    op->json)]
     (try+
      (let [result (http/post endpoint
                              {:body               body
                               :content-type       :json
-                              :socket-timeout     timeout  ; TODO: correlate with PowerSync pg_endpoint behavior
-                              :connection-timeout timeout  ;       correlate with postgres  run_tx      behavior
+                              :socket-timeout     timeout
+                              :connection-timeout timeout
                               :accept             :json})
            op'    (->> result
                        :body

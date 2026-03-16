@@ -32,20 +32,6 @@ async function main(): Promise<void> {
     .onConnectError(onConnectError)
     .build();
 
-  // TODO: remove, tmp debugging
-  console.log('insert 0 0');
-  conn.reducers.insertRegister({ k: BigInt(0), v: BigInt(0) });
-  console.log('insert 1 0');
-  conn.reducers.insertRegister({ k: BigInt(1), v: BigInt(0) });
-
-  console.log('update 0 1');
-  conn.reducers.updateRegister({ k: BigInt(0), v: BigInt(1) });
-
-  console.log('upsert 1 1');
-  conn.reducers.upsertRegister({ k: BigInt(1), v: BigInt(1) });
-
-  conn.reducers.listRegisters();
-
   //
   // REST API for Jepsen transactions
   //
@@ -89,8 +75,8 @@ async function main(): Promise<void> {
     });
   });
 
-  endpoint.listen(portNumber, 'localhost', () => {
-    console.log(`endpoint running at http://localhost:${port}`);
+  endpoint.listen(portNumber, () => {
+    console.log(`Jepsen endpoint running at http://localhost:${port}`);
   });
 }
 
@@ -109,7 +95,7 @@ function onConnect(
   conn
     .subscriptionBuilder()
     .onApplied(ctx => {
-      // Show current registers
+      // log current registers in client cache
       const registers = [...ctx.db.registers.iter()];
       console.log(`\nCurrent registers (${registers.length}):`);
       if (registers.length === 0) {
