@@ -36,10 +36,10 @@
     (try+
      (let [result (http/post endpoint
                              {:body               body
-                              :content-type       :json
+                              :content-type       "application/json"
                               :socket-timeout     timeout
                               :connection-timeout timeout
-                              :accept             :json})
+                              :accept             "application/json"})
            op'    (->> result
                        :body
                        json->op)]
@@ -84,16 +84,16 @@
     [this {:keys [client-timeout] :as _test} node]
     (assoc this
            :node    node
-           :uri     (client-node/client-uri node)
+           :uri     (str (client-node/client-uri node) "/txn")
            :timeout (* client-timeout 1000)))
 
   (setup!
     [_this _test])
 
   (invoke!
-    [{:keys [node url timeout] :as _this} _test op]
+    [{:keys [node uri timeout] :as _this} _test op]
     (let [op (assoc op :node node)]
-      (invoke op url timeout)))
+      (invoke op uri timeout)))
 
   (teardown!
     [_this _test])

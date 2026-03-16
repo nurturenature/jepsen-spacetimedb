@@ -55,19 +55,30 @@ async function main(): Promise<void> {
 
     req.on('end', async () => {
       try {
-        console.log(`[endpoint] request: ${body}`);
+        // TODO: remove debugging
+        console.log(`[endpoint] request: body: "${body}"`);
 
-        const txn = await conn.procedures.txn(body);
+        const op = JSON.parse(body);
+
+        console.log(`[endpoint] request: op.value: ${op.value.toString()}`);
+
+        // TODO: document and work-a-round the extra parse, stringify
+        const txn = await conn.procedures.txn(JSON.stringify(op.value));
         const value = JSON.parse(txn);
-        const response = JSON.stringify({ type: 'ok', value: value });
 
-        console.log(`[endpoint] response: ${response}`);
+        op.type = 'ok';
+        op.value = value;
+        const response = JSON.stringify(op);
+
+        console.log(`[endpoint] response: "${response}"`);
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(response);
-      } catch (error) {
-        const response = JSON.stringify({ type: 'info', error: error });
-        console.log(`[endpoint] response: ${response}`);
+
+      } catch (error: any) {
+        console.log(`[endpoint] error: ${error.toString()}`);
+        const response = JSON.stringify({ 'type': 'info', 'error': error.toString() });
+        console.log(`[endpoint] response: "${response}"`);
 
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(response);

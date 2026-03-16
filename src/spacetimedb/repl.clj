@@ -1,14 +1,5 @@
 (ns spacetimedb.repl
-  (:require [causal.checker
-             [adya :as adya]
-             [opts :as causal-opts]
-             [strong-convergence :as strong-convergence]]
-            [causal.checker.mww
-             [causal-consistency :refer [causal-consistency]]
-             [stats :refer [completions-by-node]]
-             [strong-convergence :refer [strong-convergence]]
-             [util :as util]]
-            [cheshire.core :as json]
+  (:require [cheshire.core :as json]
             [jepsen
              [checker :as checker]
              [history :as h]

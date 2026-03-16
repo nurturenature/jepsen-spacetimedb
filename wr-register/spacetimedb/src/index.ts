@@ -76,10 +76,12 @@ export const txn = spacetimedb.procedure(
   { value: t.string() },
   t.string(),
   (ctx, { value }) => {
+    console.log(`[stdb] txn: value: "${value}"`);
+
     const txn = JSON.parse(value);
     const res = Array();
 
-    console.log(`[stdb] txn: ${txn}`);
+    console.log(`[stdb] txn: txn: ${txn}`);
 
     ctx.withTx(ctx => {
       for (const mop of txn)
