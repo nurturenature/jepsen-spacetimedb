@@ -15,9 +15,58 @@ Lets develop a suite of Jepsen tests for SpacetimeDB to see what we can learn, a
 
 ----
 
+## Write/Read Register
+
+Let's start with using a simple key/value int/int register for our data model.
+
+It's a weaker data structure than an append only list, but it's easier to implement and explain.
+We'll evolve our way into using Jepsen's list-append.
+
+```typescript
+const spacetimedb = schema({
+  registers: table(
+    { public: true },
+    {
+      k: t.i64().primaryKey(),
+      v: t.i64(),
+    }
+  ),
+});
+```
+
+----
+
+## Transactions
+
+SpacetimeDB is architected for all writes and many read to happen in a transaction and be executed on the server.
+
+You write client functions, `Procedure`s, `Reducer`s, and `View`s, and then publish them to the SpacetimeDB database. The client will call the functions over a websocket.
+
+There is no builtin `upsert` functionality, so a `Reducer` is published to the database:
+
+```typescript
+export const upsertRegister = spacetimedb.reducer(
+  { k: t.i64(), v: t.i64() },
+  (ctx, { k, v }) => {
+    const register = ctx.db.registers.k.find(k);
+    if (register) {
+      register.v = v;
+      ctx.db.registers.k.update(register);
+    } {
+      ctx.db.registers.insert({ k: k, v: v });
+    }
+  }
+);
+```
+
+Note the use of the find-test-branch-update/insert pattern.
+
+----
+
 ## Current Status
 
-Working on schema and simple reducers for a `wr-register`.
+Working on the REST API between Jepsen and the Node client.
+The less JSON the better. 🙃
 
 ----
 

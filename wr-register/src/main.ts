@@ -39,6 +39,13 @@ async function main(): Promise<void> {
   const port = process.env.CLIENT_PORT || '3000';
   const portNumber = Number.parseInt(port);
 
+  // TODO: put in a shared type location for SpacetimeDB server
+  type F = 'r' | 'w';
+  type K = bigint;
+  type V = bigint | null;
+  type MOP = [F, K, V,];
+  type TXN = MOP[];
+
   const endpoint = http.createServer((req, res) => {
     // we only know how to handle POSTs to /txn
     const { method } = req;
@@ -58,17 +65,10 @@ async function main(): Promise<void> {
         // TODO: remove debugging
         console.log(`[endpoint] request: body: "${body}"`);
 
-        const op = JSON.parse(body);
-
-        console.log(`[endpoint] request: op.value: ${op.value.toString()}`);
-
         // TODO: document and work-a-round the extra parse, stringify
-        const txn = await conn.procedures.txn(JSON.stringify(op.value));
-        const value = JSON.parse(txn);
-
-        op.type = 'ok';
-        op.value = value;
-        const response = JSON.stringify(op);
+        const result = await conn.procedures.txn(body);
+        const txn: TXN = JSON.parse(result) as TXN;
+        const response = JSON.stringify({ type: 'ok', value: txn });
 
         console.log(`[endpoint] response: "${response}"`);
 

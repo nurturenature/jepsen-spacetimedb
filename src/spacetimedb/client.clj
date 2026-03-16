@@ -8,31 +8,32 @@
             [slingshot.slingshot :refer [try+]]
             [spacetimedb.db.client-node :as client-node]))
 
-(defn op->json
-  "Given an op, encodes it as a json string."
-  [op]
-  (-> op
-      (update :value (fn [value]
-                       (->> value
-                            (mapv (fn [[f k v :as _mop]]
-                                    {:f f :k k :v v})))))
-      json/generate-string))
+(defn op->json-txn
+  "Given an op, encodes its `:value`, a transaction, as a json string."
+  [{:keys [type f value] :as op}]
+  (assert (and (= type :invoke) (= f :txn) value)
+          (str "Invalid :type and/or :f and/or :value in op: " op))
+  (json/generate-string value))
 
-(defn json->op
-  "Given a json string, decodes it into an op."
+(defn json-result->op
+  "Given a json string, decodes it into an op.
+   Only care about the type, value, and error keys."
   [json-string]
   (-> json-string
       (json/decode true)
-      (select-keys [:type :f :value :error])
+      (select-keys [:type :value :error])
       (update :type  keyword)
-      (update :f     keyword)))
+      (update :value (fn [txn]
+                       (->> txn
+                            (mapv (fn [[f k v]]
+                                    [(keyword f) k v])))))))
 
 (defn invoke
   "Invokes the op against the endpoint and returns the result."
   [op endpoint timeout]
   (let [body   (-> op
                    (select-keys [:type :f :value]) ; don't expose rest of op map 
-                   op->json)]
+                   op->json-txn)]
     (try+
      (let [result (http/post endpoint
                              {:body               body
@@ -40,9 +41,9 @@
                               :socket-timeout     timeout
                               :connection-timeout timeout
                               :accept             "application/json"})
-           op'    (->> result
-                       :body
-                       json->op)]
+           op'    (-> result
+                      :body
+                      json-result->op)]
        (merge op op'))
 
      (catch java.net.ConnectException ex

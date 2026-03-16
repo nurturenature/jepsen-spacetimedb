@@ -1,3 +1,4 @@
+import { assert } from 'node:console';
 import { schema, table, t } from 'spacetimedb/server';
 
 const spacetimedb = schema({
@@ -45,7 +46,7 @@ export const updateRegister = spacetimedb.reducer(
   (ctx, { k, v }) => {
     const register = ctx.db.registers.k.find(k);
     if (!register) {
-      throw Error('Unable to update {$k $v}, primary key $k not in the table.');
+      throw Error(`Unable to update ${{ k, v }}, primary key ${k} not in the table.`);
     }
     register.v = v;
     ctx.db.registers.k.update(register);
@@ -72,33 +73,41 @@ export const listRegisters = spacetimedb.reducer(ctx => {
   }
 });
 
+// TODO: put in a shared type location for SpacetimeDB client
+type F = 'r' | 'w';
+type K = bigint;
+type V = bigint | null;
+type MOP = [F, K, V,];
+type TXN = MOP[];
+
 export const txn = spacetimedb.procedure(
   { value: t.string() },
   t.string(),
   (ctx, { value }) => {
     console.log(`[stdb] txn: value: "${value}"`);
 
-    const txn = JSON.parse(value);
-    const res = Array();
+    const txn: TXN = JSON.parse(value) as TXN;
+    const res: TXN = [];
 
     console.log(`[stdb] txn: txn: ${txn}`);
 
     ctx.withTx(ctx => {
-      for (const mop of txn)
-        switch (mop.f) {
+      for (const [f, k, v] of txn) {
+        switch (f) {
           case 'r':
-            const read = ctx.db.registers.k.find(mop.k);
+            const read = ctx.db.registers.k.find(k);
             if (read == null) {
-              res.push({ 'f': 'r', 'k': mop.k, 'v': null })
+              res.push(['r', k, null]);
             } else {
-              res.push({ 'f': 'r', 'k': mop.k, 'v': read.v })
+              res.push(['r', k, read.v]);
             }
             break;
           case 'w':
-            upsertRegister(ctx, { k: mop.k, v: mop.v });
-            res.push(mop)
+            upsertRegister(ctx, { k: k, v: v! });
+            res.push([f, k, v])
             break;
         }
+      }
     });
 
     const result = JSON.stringify(res);
