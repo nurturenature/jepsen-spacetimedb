@@ -1,6 +1,4 @@
-# jepsen-spacetimedb
-
-## Jepsen Tests for SpacetimeDB
+# Jepsen Tests for SpacetimeDB
 
 Why SpacetimeDB?
 
@@ -9,7 +7,7 @@ Why SpacetimeDB?
 - dynamic community
 - developers are responsive to interactions
 
-SpacetimeDB's release of its version 2 and benchmarking tests have attracted attention and generated some controversy, maybe just a misunderstanding, around its and other databases' consistency models, isolation levels and durability.  Jepsen was purpose built to test these database properties.
+SpacetimeDB's release of its version 2 and benchmarking tests have attracted attention and generated some controversy around its and other databases' consistency models, isolation levels and durability.  Jepsen was purpose built to test these database properties.
 
 Lets develop a suite of Jepsen tests for SpacetimeDB to see what we can learn, and hopefully contribute back to the project.
 
@@ -38,7 +36,9 @@ const spacetimedb = schema({
 
 ## Transactions
 
-SpacetimeDB is architected for all writes and many read to happen in a transaction and be executed on the server.
+SpacetimeDB is architected for all writes and reads to happen in a transaction and be executed on the server. Writes are serialized by the database using a single writer, no MVCC.
+
+One can also subscribe to a query that is synced to the client and receive client events for insert/delete/update events.
 
 You write client functions, `Procedure`s, `Reducer`s, and `View`s, and then publish them to the SpacetimeDB database. The client will call the functions over a websocket.
 
@@ -63,10 +63,20 @@ Note the use of the find-test-branch-update/insert pattern.
 
 ----
 
+## Consistency Model
+
+We'll use Jepsen's [Consistency Models](https://jepsen.io/consistency/models).
+
+SpacetimeDB claims to offer a [Strong Serializable](https://jepsen.io/consistency/models/strong-serializable) consistency model for transactions.
+
+Note that Strong Serializable also includes [Monotonic Atomic View](https://jepsen.io/consistency/models/monotonic-atomic-view).
+
+----
+
 ## Current Status
 
-Working on the REST API between Jepsen and the Node client.
-The less JSON the better. 🙃
+Working on building, publishing Docker images to use in GitHub actions.
+IOW, automate the running of tests, allow others to reproduce the findings.
 
 ----
 
@@ -77,6 +87,11 @@ Tests can
 - SpacetimeDB
   - install, teardown and manage the SpacetimeDB node
   - build and publish a `Module` for a `wr-register` into the database
-
+  
 - Client Nodes
   - install, teardown, and manage client nodes
+  - call `Procedure`s to write/read from a `wr-register`
+
+- Tests
+  - communicate and drive clients using a REST API
+  - check tests for consistency models and anomalies

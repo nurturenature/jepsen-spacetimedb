@@ -1,6 +1,7 @@
 (ns spacetimedb.cli
   "Command-line entry point for SpacetimeDB tests."
   (:require [clojure.string :as str]
+            [elle.consistency-model :refer [all-anomalies models]]
             [jepsen
              [checker :as checker]
              [cli :as cli]
@@ -56,6 +57,12 @@
   (->> (str/split spec #",")
        (map keyword)
        (mapcat #(get special-nemeses % [%]))))
+
+(defn parse-keywords-spec
+  "Takes a comma-separated string of models and returns a collection of consistency models."
+  [spec]
+  (->> (str/split spec #",")
+       (mapv keyword)))
 
 (defn test-name
   "Given opts, returns a meaningful test name."
@@ -115,15 +122,50 @@
 
 (def cli-opts
   "Command line options"
-  [[nil "--client-timeout SECS" "The number of seconds to wait before timing out a client connection."
+  [[nil "--anomalies ANOMALIES" "A list of additional anomalies to check for."
+    :default  []
+    :parse-fn parse-keywords-spec
+    :validate [(partial every? all-anomalies) (str "Must be a collection of anomalies: " all-anomalies ".")]]
+
+   [nil "--client-timeout SECS" "The number of seconds to wait before timing out a client connection."
     :default  3
     :parse-fn parse-long
     :validate [pos? "Must be a positive integer"]]
 
+   [nil "--consistency-models MODELS" "A list of consistency models we expect the transaction history to obey."
+    :default  [:strict-serializable]
+    :parse-fn parse-keywords-spec
+    :validate [(partial every? models) (str "Must be a collection of consistency models: " (keys models) ".")]]
+
+   [nil "--key-dist DISTRIBUTION" "Probability distribution for keys being selected for a given operation."
+    :default  :exponential
+    :parse-fn keyword
+    :validate [#{:exponential :uniform} "Must be one of exponential or uniform."]]
+
+   [nil "--key-count NUMBER" "Number of distinct keys at any point."
+    :default  10
+    :parse-fn parse-long
+    :validate [pos? "Must be a positive number."]]
+
    [nil "--keys-txn NUM" "The number of keys to act on in a transactions."
     :default  4
     :parse-fn parse-long
-    :validate [pos? "Must be a positive integer"]]
+    :validate [pos? "Must be a positive integer."]]
+
+   [nil "--linearizable-keys? BOOLEAN" "Assume that each key is independently linearizable."
+    :default  true
+    :parse-fn parse-boolean
+    :validate [boolean? "Must be a Boolean."]]
+
+   [nil "--max-txn-length NUM" "Maximum number of operations per txn."
+    :default  4
+    :parse-fn parse-long
+    :validate [pos? "Must be a positive integer."]]
+
+   [nil "--min-txn-length NUM" "Minimum number of operations per txn."
+    :default  2
+    :parse-fn parse-long
+    :validate [pos? "Must be a positive integer."]]
 
    [nil "--nemesis FAULTS" "A comma-separated list of nemesis faults to enable"
     :parse-fn parse-nemesis-spec
@@ -143,10 +185,20 @@
     :parse-fn parse-long
     :validate [pos? "Must be a positive number."]]
 
+   [nil "--sequential-keys? BOOLEAN" "Assume that each key is independently sequentially consistent."
+    :default  true
+    :parse-fn parse-boolean
+    :validate [boolean? "Must be a Boolean."]]
+
    [nil "--spacetimedb-node NODE" "Node to install SpacetimeDB on."
     :default  "spacetimedb"
     :parse-fn read-string
     :validate [string? "Must be a String."]]
+
+   [nil "--wfr-keys? BOOLEAN" "Assume that within each transaction, writes follow reads."
+    :default  true
+    :parse-fn parse-boolean
+    :validate [boolean? "Must be a Boolean."]]
 
    ["-w" "--workload NAME" "What workload should we run?"
     :parse-fn keyword
