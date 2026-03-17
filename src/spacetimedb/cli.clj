@@ -5,11 +5,13 @@
              [checker :as checker]
              [cli :as cli]
              [generator :as gen]
+             [role :as role]
              [tests :as tests]]
             [jepsen.checker.timeline :as timeline]
             [jepsen.os.debian :as debian]
             [spacetimedb
              [nemesis :as nemesis]
+             [role :refer [client-role]]
              [workload :as workload]]
             [spacetimedb.db
              [client-node :as client-node]
@@ -57,13 +59,12 @@
 
 (defn test-name
   "Given opts, returns a meaningful test name."
-  [{:keys [nemesis nodes rate time-limit workload] :as _opts}]
-  (let [nodes (into #{} nodes)]
-    (str (name workload)
-         " " (str/join "," (map name nemesis))
-         " " (count nodes) "n"
-         "-" rate "tps"
-         "-" time-limit "s")))
+  [{:keys [nemesis rate time-limit workload] :as opts}]
+  (str (name workload)
+       "-" (str/join "," (map name nemesis))
+       "-" (count (role/nodes opts client-role)) "n"
+       "-" rate "tps"
+       "-" time-limit "s"))
 
 (defn spacetimedb-test
   "Given options from the CLI, constructs a test map."
@@ -139,8 +140,8 @@
 
    ["-r" "--rate HZ" "Approximate request rate, in hz"
     :default 100
-    :parse-fn read-string
-    :validate [name pos? "Must be a positive number."]]
+    :parse-fn parse-long
+    :validate [pos? "Must be a positive number."]]
 
    [nil "--spacetimedb-node NODE" "Node to install SpacetimeDB on."
     :default  "spacetimedb"
