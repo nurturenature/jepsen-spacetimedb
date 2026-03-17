@@ -1,7 +1,7 @@
 (ns spacetimedb.cli
   "Command-line entry point for SpacetimeDB tests."
   (:require [clojure.string :as str]
-            [elle.consistency-model :refer [all-anomalies models]]
+            [elle.consistency-model :refer [all-anomalies all-models]]
             [jepsen
              [checker :as checker]
              [cli :as cli]
@@ -135,7 +135,7 @@
    [nil "--consistency-models MODELS" "A list of consistency models we expect the transaction history to obey."
     :default  [:strict-serializable]
     :parse-fn parse-keywords-spec
-    :validate [(partial every? models) (str "Must be a collection of consistency models: " (keys models) ".")]]
+    :validate [(partial every? all-models) (str "Must be a collection of consistency models: " all-models ".")]]
 
    [nil "--key-dist DISTRIBUTION" "Probability distribution for keys being selected for a given operation."
     :default  :exponential
