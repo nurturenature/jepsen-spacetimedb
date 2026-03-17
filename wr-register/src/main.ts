@@ -10,7 +10,7 @@ import {
 } from './module_bindings/index.js';
 
 import http from 'http';
-import { parseURL } from 'whatwg-url';
+import { URL } from 'whatwg-url';
 
 // Configuration
 const HOST = process.env.SPACETIMEDB_HOST ?? 'ws://spacetimedb:3000';
@@ -49,10 +49,11 @@ async function main(): Promise<void> {
   const endpoint = http.createServer((req, res) => {
     // we only know how to handle POSTs to /txn
     const { method } = req;
-    const parsedUrl = parseURL(req.url!)!;
+    const parsedUrl = new URL(req.url!);
+
     assert(
-      (method == 'POST') && (parsedUrl.path == '/txn'),
-      `Invalid HTTP method / path: ${method} / ${parsedUrl.path}`);
+      (method == 'POST') && (parsedUrl.pathname == '/txn'),
+      `Invalid HTTP method / path: ${method} / ${parsedUrl.pathname}`);
 
     // body is a String representing a Jepsen txn as JSON
     let body = '';
