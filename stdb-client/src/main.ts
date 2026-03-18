@@ -13,7 +13,7 @@ import http from 'http';
 
 // Configuration
 const HOST = process.env.SPACETIMEDB_HOST ?? 'ws://spacetimedb:3000';
-const DB_NAME = process.env.SPACETIMEDB_DB_NAME ?? 'wr-register';
+const DB_NAME = process.env.SPACETIMEDB_DB_NAME ?? 'test-db';
 
 // Main entry point
 async function main(): Promise<void> {

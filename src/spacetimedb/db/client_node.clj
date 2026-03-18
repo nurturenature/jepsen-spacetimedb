@@ -93,7 +93,7 @@
             {:chdir   stdb/client-dir
              :logfile log-file
              :pidfile pid-file
-             :env     {:SPACETIMEDB_DB_NAME "wr-register"}}
+             :env     {:SPACETIMEDB_DB_NAME stdb/spacetimedb-db-name}}
             "/usr/bin/npm"
             :run :dev))
           :started)))

@@ -23,5 +23,5 @@ WORKDIR /jepsen/jepsen-spacetimedb
 RUN git clone -b main --depth 1 --single-branch https://github.com/nurturenature/jepsen-spacetimedb.git
 
 # install npm deps for caching layer
-WORKDIR /jepsen/jepsen-spacetimedb/jepsen-spacetimedb/wr-register
+WORKDIR /jepsen/jepsen-spacetimedb/jepsen-spacetimedb/stdb-client
 RUN npm install

@@ -92,7 +92,7 @@ Tests can
 
 - SpacetimeDB
   - install, teardown and manage the SpacetimeDB node
-  - build and publish a `Module` for a `wr-register` into the database
+  - build and publish a `Module` for a `test-db` into the database
   
 - Client Nodes
   - install, teardown, and manage client nodes

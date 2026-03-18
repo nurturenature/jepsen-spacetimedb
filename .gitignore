@@ -5,4 +5,4 @@
 .vscode
 store
 target
-wr-register/.spacetimedb-token
+stdb-client/.spacetimedb-token

@@ -8,13 +8,16 @@
             [jepsen.control.util :as cu]
             [jepsen.os.debian :as debian]))
 
+(def spacetimedb-db-name
+  "test-db")
+
 (def jepsen-dir
   "Working directory for Jepsen."
   "/jepsen/jepsen-spacetimedb")
 
 (def client-dir
   "TypeScript client directory."
-  (str jepsen-dir "/jepsen-spacetimedb/wr-register"))
+  (str jepsen-dir "/jepsen-spacetimedb/stdb-client"))
 
 (def pid-file (str jepsen-dir "/spacetimedb.pid"))
 
@@ -77,8 +80,8 @@
            ; configuring should also create config ~/.config/spacetime/cli.toml
            (c/exec (:binary spacetimedb-files) :server :set-default :local)))))
 
-(defn configure-wr-register
-  "Configure SpacetimeDB for a wr-register.
+(defn configure-test-db
+  "Configure SpacetimeDB for a test-db.
    Expects SpacetimeDB to be started."
   []
   (c/cd jepsen-dir
@@ -91,11 +94,11 @@
 
         ; shouldn't have to generate bindings, they are in repository,
         ; but generation from source keeps us honest
-        (c/exec (:binary spacetimedb-files) :generate :wr-register :--lang :typescript :--out-dir "src/module_bindings")
+        (c/exec (:binary spacetimedb-files) :generate spacetimedb-db-name :--lang :typescript :--out-dir "src/module_bindings")
 
         (c/exec (:binary spacetimedb-files) :build)
 
-        (c/exec (:binary spacetimedb-files) :publish :--yes :--server :local :wr-register)))
+        (c/exec (:binary spacetimedb-files) :publish :--yes :--server :local spacetimedb-db-name)))
 
 (def spacetimedb-started? (atom false))
 
@@ -113,7 +116,7 @@
       (db/start! this test node)
       (u/sleep 1000) ; TODO: sleep for 1s to allow endpoint to come up, should be retry http connection
 
-      (configure-wr-register)
+      (configure-test-db)
 
       (swap! spacetimedb-started? (constantly true)))
 
