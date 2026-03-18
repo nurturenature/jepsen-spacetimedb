@@ -118,7 +118,7 @@ jobs:
 
       - name: "Jepsen Test Artifacts: summary"
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: "${{ env.test-title }}-summary"
           path: |
@@ -127,7 +127,7 @@ jobs:
 
       - name: "Jepsen Test Artifacts: full"
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: "${{ env.test-title }}-${{ job.status }}"
           path: |
