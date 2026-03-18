@@ -1,4 +1,4 @@
-import { schema, table, t } from 'spacetimedb/server';
+import { schema, SenderError, t, table, } from 'spacetimedb/server';
 
 const spacetimedb = schema({
   registers: table(
@@ -29,14 +29,22 @@ export const onDisconnect = spacetimedb.clientDisconnected(_ctx => {
 export const insertRegister = spacetimedb.reducer(
   { k: t.i32(), v: t.i32() },
   (ctx, { k, v }) => {
-    ctx.db.registers.insert({ k, v });
+    try {
+      ctx.db.registers.insert({ k, v });
+    } catch (error) {
+      throw new SenderError(`Error inserting ${{ k, v }}: ${error}`);
+    }
   }
 );
 
 export const deleteRegister = spacetimedb.reducer(
   { k: t.i32() },
   (ctx, { k }) => {
-    ctx.db.registers.k.delete(k);
+    try {
+      ctx.db.registers.k.delete(k);
+    } catch (error) {
+      throw new SenderError(`Error deleting ${k}: ${error}`);
+    }
   }
 );
 
@@ -45,22 +53,30 @@ export const updateRegister = spacetimedb.reducer(
   (ctx, { k, v }) => {
     const register = ctx.db.registers.k.find(k);
     if (!register) {
-      throw Error(`Unable to update ${{ k, v }}, primary key ${k} not in the table.`);
+      throw new SenderError(`Unable to update ${{ k, v }}, primary key ${k} not in the table.`);
     }
     register.v = v;
-    ctx.db.registers.k.update(register);
+    try {
+      ctx.db.registers.k.update(register);
+    } catch (error) {
+      throw new SenderError(`Error updating ${{ k, v }}: ${error}`);
+    }
   }
 );
 
 export const upsertRegister = spacetimedb.reducer(
   { k: t.i32(), v: t.i32() },
   (ctx, { k, v }) => {
-    const register = ctx.db.registers.k.find(k);
-    if (register) {
-      register.v = v;
-      ctx.db.registers.k.update(register);
-    } {
-      ctx.db.registers.insert({ k: k, v: v });
+    try {
+      const register = ctx.db.registers.k.find(k);
+      if (register) {
+        register.v = v;
+        ctx.db.registers.k.update(register);
+      } {
+        ctx.db.registers.insert({ k: k, v: v });
+      }
+    } catch (error) {
+      throw new SenderError(`Error upserting ${{ k, v }}: ${error}`);
     }
   }
 );
@@ -79,6 +95,9 @@ type V = number | null;
 type MOP = [F, K, V,];
 type TXN = MOP[];
 
+// no try/catch, rely on:
+// - called reducer to throw SenderError
+// - or it's truly unexpected and should surface as an uncaught Error
 export const txn = spacetimedb.procedure(
   { value: t.string() },
   t.string(),
