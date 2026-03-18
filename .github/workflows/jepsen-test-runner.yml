@@ -112,11 +112,11 @@ jobs:
         timeout-minutes: ${{ fromJSON(inputs.args).timeout-minutes }}
         run: |
           cd $GITHUB_WORKSPACE/docker
-          ./docker-run.sh lein run test --workload          ${{ matrix.workload }} \
-                                        --nemesis           ${{ matrix.nemesis }}  \
-                                        --concurrency       ${{ matrix.concurrency }}
-                                        --rate              ${{ matrix.rate }}     \
-                                        --time-limit        ${{ matrix.time-limit }} \
+          ./docker-run.sh lein run test --workload          ${{ matrix.workload }}    \
+                                        --nemesis           ${{ matrix.nemesis }}     \
+                                        --concurrency       ${{ matrix.concurrency }} \
+                                        --rate              ${{ matrix.rate }}        \
+                                        --time-limit        ${{ matrix.time-limit }}  \
                                         ${{ inputs.cli-opts }}
 
       - name: Jepsen control logs
