@@ -174,7 +174,7 @@
 
    [nil "--nemesis-interval SECS" "Roughly how long between nemesis operations."
     :default 5
-    :parse-fn read-string
+    :parse-fn parse-long
     :validate [pos? "Must be a positive number."]]
 
    [nil "--no-wipe" "If set, do not wipe files when tearing down nodes."
@@ -192,7 +192,7 @@
 
    [nil "--spacetimedb-node NODE" "Node to install SpacetimeDB on."
     :default  "spacetimedb"
-    :parse-fn read-string
+    :parse-fn str
     :validate [string? "Must be a String."]]
 
    [nil "--wfr-keys? BOOLEAN" "Assume that within each transaction, writes follow reads."
