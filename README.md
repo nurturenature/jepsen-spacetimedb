@@ -7,9 +7,9 @@ Why SpacetimeDB?
 - dynamic community
 - developers are responsive to interactions
 
-SpacetimeDB's release of its version 2 and benchmarking tests have attracted attention and generated some controversy around its and other databases' consistency models, isolation levels and durability.  Jepsen was purpose built to test these database properties.
+SpacetimeDB's recent release of its version 2 has attracted attention and generated some questions around its and other databases' consistency models, isolation levels and durability.
 
-Lets develop a suite of Jepsen tests for SpacetimeDB to see what we can learn, and hopefully contribute back to the project.
+Jepsen was purpose built to test these database properties. Lets develop a suite of Jepsen tests for SpacetimeDB to see what we can learn, and hopefully contribute back to the project.
 
 ----
 
@@ -61,6 +61,23 @@ export const upsertRegister = spacetimedb.reducer(
 
 Note the use of the find-test-branch-update/insert pattern.
 
+Jepsen will generate transactions consisting of a random number of writes and/or reads against random keys with monotonically increasing values per key.
+We use an exponential key distribution to emphasize potential conflicts against the same row.
+
+```clj
+;; sample of clients 6, 7, and 8 invoking transactions and receiving an ok response
+
+;; [:r k v] -> [read  key value] (read values are nil on invocations)
+;; [:w k v] -> [write key value]
+
+6 :invoke :txn  [[:w 8 21] [:w 7 12] [:w 7 13] [:w 9 31]]
+6 :ok     :txn  [[:w 8 21] [:w 7 12] [:w 7 13] [:w 9 31]]
+7 :invoke :txn  [[:r 9 nil] [:r 5 nil]]
+7 :ok     :txn  [[:r 9 31] [:r 5 3]]
+8 :invoke :txn  [[:w 9 32] [:w 7 14] [:w 8 22]]
+8 :ok     :txn  [[:w 9 32] [:w 7 14] [:w 8 22]]
+```
+
 ----
 
 ## Consistency Model
@@ -79,27 +96,29 @@ When determining version orders for `wr-register`, the following Jepsen checker 
 
 ----
 
-## Current Status
+## Nemeses
 
-Working on GitHub actions.
-IOW, automate the running of tests, allow others to reproduce the findings.
+Jepsen runs the real database with real clients in a real environment and introduces real faults.
+
+If your database is successful, e.g. adoption, lifetime, etc., it will experience environment faults.
+
+Are they really Faults or just Real Life? 🤔
+
+### Pause/Resume
+
+Randomly pause/resume a random set of nodes for a random duration.
+Act on the SpacetimeDB or client's process with:
+
+```clj
+(cu/grepkill! :stop spacetimedb-ps-name)
+
+(cu/grepkill! :cont spacetimedb-ps-name)
+```
 
 ----
 
-## Log Book
+## GitHub Actions
 
-Tests can
+- `wr-register-procedure` - wr-register data model with all writes/reads in a transaction in a `Procedure`
 
-- SpacetimeDB
-  - install, teardown and manage the SpacetimeDB node
-  - build and publish a `Module` for a `test-db` into the database
-  
-- Client Nodes
-  - install, teardown, and manage client nodes
-  - call `Procedure`s to write/read from a `wr-register`
-
-- Tests
-  - communicate and drive clients using a REST API
-  - checks for consistency models and anomalies
-
-- Docker compose environment to replicate the tests
+- `wr-register-procedure-pause-resume` - like `wr-register-procedure` action with the addition of a pause nemesis
