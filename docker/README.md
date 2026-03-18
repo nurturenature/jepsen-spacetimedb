@@ -12,7 +12,7 @@ cd jepsen-spacetimedb/docker
 ./docker-compose-up.sh
 
 # run a test
-./docker-run.sh lein run test --workload procedures --nodes spacetimedb,n1,n2,n3,n4,n5,n6,n7,n8,n9,n10 --concurrency 20 --rate 1000 --time-limit 100
+./docker-run.sh lein run test --workload wr-register-procedure --nodes spacetimedb,n1,n2,n3,n4,n5,n6,n7,n8,n9,n10 --concurrency 20 --rate 1000 --time-limit 100
 
 # bring up a web server for test results
 ./jepsen-web.sh

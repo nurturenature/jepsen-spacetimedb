@@ -7,7 +7,7 @@ on:
         description: Workloads (as JSON)
         type: string
         required: true
-        default: "[ 'procedures' ]"
+        default: "[ 'wr-register-procedure' ]"
       nemeses:
         description: "Nemeses (as JSON)"
         type: string

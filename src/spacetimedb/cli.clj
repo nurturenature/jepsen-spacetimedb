@@ -21,12 +21,13 @@
 (def workloads
   "A map of workload names to functions that take CLI options and return
   workload maps."
-  {:procedures workload/procedures
-   :none       (fn [_] tests/noop-test)})
+  {:ledger-procedure      workload/ledger-procedure
+   :wr-register-procedure workload/wr-register-procedure
+   :none                  (fn [_] tests/noop-test)})
 
 (def all-workloads
   "Default collection of workloads for test-all."
-  [:procedures])
+  [:ledger-procedure :wr-register-procedure])
 
 (def nemeses
   "A collection of valid nemeses."
@@ -93,6 +94,7 @@
     (merge tests/noop-test
            opts
            {:name      (test-name opts)
+            :roles     (:roles workload)
             :os        debian/os
             :db        db
             :checker   (checker/compose
@@ -118,8 +120,7 @@
 
                         (gen/log "Final workload")
                         (->> (:final-generator workload)
-                             (gen/stagger (/ (:rate opts)))))
-            :roles     (:roles workload)})))
+                             (gen/stagger (/ (:rate opts)))))})))
 
 (def cli-opts
   "Command line options"

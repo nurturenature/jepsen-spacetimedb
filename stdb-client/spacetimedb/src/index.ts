@@ -1,14 +1,28 @@
 import { schema, SenderError, t, table, } from 'spacetimedb/server';
 
-const spacetimedb = schema({
-  registers: table(
-    { public: true },
-    {
-      k: t.i32().primaryKey(),
-      v: t.i32(),
-    }
-  ),
-});
+const registers = table(
+  {
+    name: 'registers',
+    public: true
+  },
+  {
+    k: t.i32().primaryKey(),
+    v: t.i32(),
+  }
+);
+
+const ledger = table(
+  {
+    name: 'ledger',
+    public: true
+  },
+  {
+    account: t.i32().primaryKey(),
+    balance: t.i32(),
+  }
+);
+
+const spacetimedb = schema({ registers, ledger });
 export default spacetimedb;
 
 export const init = spacetimedb.init(_ctx => {
@@ -23,8 +37,10 @@ export const onDisconnect = spacetimedb.clientDisconnected(_ctx => {
   // Called every time a client disconnects
 });
 
-// follow SpacetimeDB docs for accessing tables
+// following SpacetimeDB docs for accessing tables
 // https://spacetimedb.com/docs/functions/reducers/#accessing-tables
+
+// wr-register
 
 export const insertRegister = spacetimedb.reducer(
   { k: t.i32(), v: t.i32() },
@@ -132,3 +148,67 @@ export const txn = spacetimedb.procedure(
     console.log(`[stdb] result: ${result}`);
     return result;
   });
+
+// ledger
+
+export const insertAccount = spacetimedb.reducer(
+  { account: t.i32(), balance: t.i32() },
+  (ctx, { account, balance }) => {
+    try {
+      ctx.db.ledger.insert({ account, balance });
+    } catch (error) {
+      throw new SenderError(`Error inserting ${{ account, balance }}: ${error}`);
+    }
+  }
+);
+
+export const deleteAccount = spacetimedb.reducer(
+  { account: t.i32() },
+  (ctx, { account }) => {
+    try {
+      ctx.db.ledger.account.delete(account);
+    } catch (error) {
+      throw new SenderError(`Error deleting ${account}: ${error}`);
+    }
+  }
+);
+
+export const updateAccount = spacetimedb.reducer(
+  { account: t.i32(), balance: t.i32() },
+  (ctx, { account, balance }) => {
+    const entry = ctx.db.ledger.account.find(account);
+    if (!entry) {
+      throw new SenderError(`Unable to update ${{ account, balance }}, primary key ${account} not in the table.`);
+    }
+    entry.balance = balance;
+    try {
+      ctx.db.ledger.account.update(entry);
+    } catch (error) {
+      throw new SenderError(`Error updating ${{ account, balance }}: ${error}`);
+    }
+  }
+);
+
+export const upsertAccount = spacetimedb.reducer(
+  { account: t.i32(), balance: t.i32() },
+  (ctx, { account, balance }) => {
+    try {
+      const entry = ctx.db.ledger.account.find(account);
+      if (entry) {
+        entry.balance = balance;
+        ctx.db.ledger.account.update(entry);
+      } {
+        ctx.db.ledger.insert({ account: account, balance: balance });
+      }
+    } catch (error) {
+      throw new SenderError(`Error upserting ${{ account, balance }}: ${error}`);
+    }
+  }
+);
+
+export const listLedger = spacetimedb.reducer(ctx => {
+  console.info('listLedger:');
+  for (const entry of ctx.db.ledger.iter()) {
+    console.info('\t', { account: entry.account, balance: entry.balance });
+  }
+});

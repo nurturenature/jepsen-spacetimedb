@@ -34,22 +34,39 @@ import {
 } from "spacetimedb";
 
 // Import all reducer arg schemas
+import DeleteAccountReducer from "./delete_account_reducer";
 import DeleteRegisterReducer from "./delete_register_reducer";
+import InsertAccountReducer from "./insert_account_reducer";
 import InsertRegisterReducer from "./insert_register_reducer";
+import ListLedgerReducer from "./list_ledger_reducer";
 import ListRegistersReducer from "./list_registers_reducer";
+import UpdateAccountReducer from "./update_account_reducer";
 import UpdateRegisterReducer from "./update_register_reducer";
+import UpsertAccountReducer from "./upsert_account_reducer";
 import UpsertRegisterReducer from "./upsert_register_reducer";
 
 // Import all procedure arg schemas
 import * as TxnProcedure from "./txn_procedure";
 
 // Import all table schema definitions
+import LedgerRow from "./ledger_table";
 import RegistersRow from "./registers_table";
 
 /** Type-only namespace exports for generated type groups. */
 
 /** The schema information for all tables in this module. This is defined the same was as the tables would have been defined in the server. */
 const tablesSchema = __schema({
+  ledger: __table({
+    name: 'ledger',
+    indexes: [
+      { accessor: 'account', name: 'ledger_account_idx_btree', algorithm: 'btree', columns: [
+        'account',
+      ] },
+    ],
+    constraints: [
+      { name: 'ledger_account_key', constraint: 'unique', columns: ['account'] },
+    ],
+  }, LedgerRow),
   registers: __table({
     name: 'registers',
     indexes: [
@@ -65,10 +82,15 @@ const tablesSchema = __schema({
 
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
 const reducersSchema = __reducers(
+  __reducerSchema("delete_account", DeleteAccountReducer),
   __reducerSchema("delete_register", DeleteRegisterReducer),
+  __reducerSchema("insert_account", InsertAccountReducer),
   __reducerSchema("insert_register", InsertRegisterReducer),
+  __reducerSchema("list_ledger", ListLedgerReducer),
   __reducerSchema("list_registers", ListRegistersReducer),
+  __reducerSchema("update_account", UpdateAccountReducer),
   __reducerSchema("update_register", UpdateRegisterReducer),
+  __reducerSchema("upsert_account", UpsertAccountReducer),
   __reducerSchema("upsert_register", UpsertRegisterReducer),
 );
 
