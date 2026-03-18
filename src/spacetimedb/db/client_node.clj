@@ -100,8 +100,10 @@
 
     (kill!
       [_this _test _node]
+      ; TODO: understand why sporadic Exception with exit code of 137 when using Docker,
+      ;       for now, retrying is effective and safe 
       (c/su
-       (cu/grepkill! client-node-ps-name))
+       (u/retry 1 (cu/grepkill! client-node-ps-name)))
       :killed)
 
     db/Pause

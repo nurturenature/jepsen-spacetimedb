@@ -71,11 +71,17 @@ SpacetimeDB claims to offer a [Strong Serializable](https://jepsen.io/consistenc
 
 Note that Strong Serializable also includes [Monotonic Atomic View](https://jepsen.io/consistency/models/monotonic-atomic-view).
 
+When determining version orders for `wr-register`, the following Jepsen checker flags are set to `true`:
+
+- linearizable-keys?  Uses realtime order
+- sequential-keys?    Uses process order
+- wfr-keys?           Assumes writes follow reads in a txn
+
 ----
 
 ## Current Status
 
-Working on building, publishing Docker images to use in GitHub actions.
+Working on GitHub actions.
 IOW, automate the running of tests, allow others to reproduce the findings.
 
 ----
@@ -94,4 +100,6 @@ Tests can
 
 - Tests
   - communicate and drive clients using a REST API
-  - check tests for consistency models and anomalies
+  - checks for consistency models and anomalies
+
+- Docker compose environment to replicate the tests
