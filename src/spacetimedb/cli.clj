@@ -66,10 +66,11 @@
 
 (defn test-name
   "Given opts, returns a meaningful test name."
-  [{:keys [nemesis rate time-limit workload] :as opts}]
+  [{:keys [concurrency nemesis rate time-limit workload] :as opts}]
   (str (name workload)
        "-" (str/join "," (map name nemesis))
        "-" (count (role/nodes opts client-role)) "n"
+       "-" concurrency "c"
        "-" rate "tps"
        "-" time-limit "s"))
 

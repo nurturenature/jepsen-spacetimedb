@@ -23,6 +23,11 @@ on:
         type: string
         required: true
         default: "[ '10', '30', '60' ]"
+      concurrency:
+        description: "Concurrency (as JSON)"
+        type: string
+        required: true
+        default: "[ '10', '30', '50' ]"
       cli-opts:
         description: "CLI opts string"
         type: string
@@ -40,6 +45,7 @@ jobs:
     with:
       workloads: ${{ inputs.workloads}}
       nemeses: ${{ inputs.nemeses }}
+      concurrency: ${{ inputs.concurrency }}
       rates: ${{ inputs.rates }}
       time-limits: ${{ inputs.time-limits }}
       cli-opts: ${{ inputs.cli-opts }}

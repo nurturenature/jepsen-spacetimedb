@@ -23,6 +23,11 @@ on:
         type: string
         required: true
         default: "[ '10', '30', '60' ]"
+      concurrency:
+        description: "Concurrency (as JSON)"
+        type: string
+        required: true
+        default: "[ '10', '30', '50' ]"
       cli-opts:
         description: "CLI opts string"
         type: string
@@ -56,6 +61,11 @@ on:
         type: string
         required: false
         default: "[ '10', '30', '60' ]"
+      concurrency:
+        description: "Concurrency (as JSON)"
+        type: string
+        required: false
+        default: "[ '10', '30', '50' ]"
       cli-opts:
         description: "CLI opts string"
         type: string
@@ -78,10 +88,11 @@ jobs:
         nemesis: ${{ fromJSON(inputs.nemeses) }}
         rate: ${{ fromJSON(inputs.rates) }}
         time-limit: ${{ fromJSON(inputs.time-limits) }}
+        concurrency: ${{ fromJSON(inputs.concurrency) }}
         repeat: ${{ fromJSON(inputs.args).repeat }}
 
     env:
-      test-title: ${{ matrix.rate }}tps-${{ matrix.time-limit }}s-${{ matrix.workload }}-${{ matrix.nemesis }}-${{ matrix.repeat }}
+      test-title: ${{ matrix.concurrency }}c-${{ matrix.rate }}tps-${{ matrix.time-limit }}s-${{ matrix.workload }}-${{ matrix.nemesis }}-${{ matrix.repeat }}
 
     steps:
       - name: Checkout jepsen-spacetimedb
@@ -103,6 +114,7 @@ jobs:
           cd $GITHUB_WORKSPACE/docker
           ./docker-run.sh lein run test --workload          ${{ matrix.workload }} \
                                         --nemesis           ${{ matrix.nemesis }}  \
+                                        --concurrency       ${{ matrix.concurrency }}
                                         --rate              ${{ matrix.rate }}     \
                                         --time-limit        ${{ matrix.time-limit }} \
                                         ${{ inputs.cli-opts }}
