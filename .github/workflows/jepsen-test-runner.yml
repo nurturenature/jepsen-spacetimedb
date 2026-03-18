@@ -1,0 +1,134 @@
+name: Jepsen Tests Runner
+
+on:
+  workflow_dispatch:
+    inputs:
+      workloads:
+        description: Workloads (as JSON)
+        type: string
+        required: true
+        default: "[ 'procedures' ]"
+      nemeses:
+        description: "Nemeses (as JSON)"
+        type: string
+        required: true
+        default: "[ 'none' ]"
+      rates:
+        description: "Rates (as JSON)"
+        type: string
+        required: true
+        default: "[ '100', '500', '1000' ]"
+      time-limits:
+        description: "Time limits (as JSON)"
+        type: string
+        required: true
+        default: "[ '10', '30', '60' ]"
+      cli-opts:
+        description: "CLI opts string"
+        type: string
+        required: true
+        default: --nodes spacetimedb,n1,n2,n3,n4,n5,n6,n7,n8,n9,n10 --spacetimedb-node spacetimedb
+      args:
+        description: "A JSON Map of args (workaround GitHub max inputs)"
+        type: string
+        required: true
+        default: "{'repeat': [ '1' ], 'timeout-minutes': 10 }"
+
+  workflow_call:
+    inputs:
+      workloads:
+        description: "Workloads (as JSON)"
+        type: string
+        required: false
+        default: "[ 'procedures' ]"
+      nemeses:
+        description: "Nemeses (as JSON)"
+        type: string
+        required: false
+        default: "[ 'none' ]"
+      rates:
+        description: "Rates (as JSON)"
+        type: string
+        required: false
+        default: "[ '100', '500', '1000' ]"
+      time-limits:
+        description: "Time limits (as JSON)"
+        type: string
+        required: false
+        default: "[ '10', '30', '60' ]"
+      cli-opts:
+        description: "CLI opts string"
+        type: string
+        required: false
+        default: --nodes spacetimedb,n1,n2,n3,n4,n5,n6,n7,n8,n9,n10 --spacetimedb-node spacetimedb
+      args:
+        description: "A JSON Map of args (workaround GitHub max inputs)"
+        type: string
+        required: false
+        default: "{'repeat': [ '1' ], 'timeout-minutes': 10 }"
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        workload: ${{ fromJSON(inputs.workloads) }}
+        nemesis: ${{ fromJSON(inputs.nemeses) }}
+        rate: ${{ fromJSON(inputs.rates) }}
+        time-limit: ${{ fromJSON(inputs.time-limits) }}
+        repeat: ${{ fromJSON(inputs.args).repeat }}
+
+    env:
+      test-title: ${{ matrix.rate }}tps-${{ matrix.time-limit }}s-${{ matrix.workload }}-${{ matrix.nemesis }}-${{ matrix.repeat }}
+
+    steps:
+      - name: Checkout jepsen-spacetimedb
+        uses: actions/checkout@v5
+
+      - name: Bring Up Docker Environment
+        run: |
+          cd $GITHUB_WORKSPACE/docker
+          ./docker-build.sh      || $(exit 255)
+          ./docker-compose-up.sh || $(exit 255)
+
+      - name: Confirm Docker Environment
+        run: |
+          docker logs jepsen-control &> /dev/null || $(exit 255)
+
+      - name: ${{ env.test-title }}
+        timeout-minutes: ${{ fromJSON(inputs.args).timeout-minutes }}
+        run: |
+          cd $GITHUB_WORKSPACE/docker
+          ./docker-run.sh lein run test --workload          ${{ matrix.workload }} \
+                                        --nemesis           ${{ matrix.nemesis }}  \
+                                        --rate              ${{ matrix.rate }}     \
+                                        --time-limit        ${{ matrix.time-limit }} \
+                                        ${{ inputs.cli-opts }}
+
+      - name: Jepsen control logs
+        if: ${{ always() }}
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/store/current
+          docker cp jepsen-control:/jepsen/jepsen-spacetimedb/jepsen-spacetimedb/store/current/. $GITHUB_WORKSPACE/store/current \
+            || echo "no jepsen-control store" > $GITHUB_WORKSPACE/store/current/jepsen-control.log
+          tail -n 100 $GITHUB_WORKSPACE/store/current/jepsen.log > $GITHUB_WORKSPACE/store/current/tail-jepsen.log \
+            || echo "no jepsen.log" > $GITHUB_WORKSPACE/store/current/tail-jepsen.log
+
+      - name: "Jepsen Test Artifacts: summary"
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: "${{ env.test-title }}-summary"
+          path: |
+            ${{ github.workspace }}/store/current/results.edn
+            ${{ github.workspace }}/store/current/tail-jepsen.log
+
+      - name: "Jepsen Test Artifacts: full"
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: "${{ env.test-title }}-${{ job.status }}"
+          path: |
+            ${{ github.workspace }}/store/current
