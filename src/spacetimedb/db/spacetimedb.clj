@@ -23,10 +23,6 @@
 
 (def spacetimedb-ps-name "spacetimedb")
 
-(def spacetimedb-host "spacetimedb")
-(def spacetimedb-port 3000)
-(def spacetimedb-uri  (str "ws://" spacetimedb-host ":" spacetimedb-port))
-
 (def pg-port 5432)
 
 (def spacetimedb-files
@@ -160,18 +156,25 @@
 
     (kill!
       [_this _test _node]
+      ; TODO: understand why sporadic Exception with exit code of 137 when using Docker,
+      ;       for now, retrying is effective and safe 
       (c/su
-       (cu/grepkill! spacetimedb-ps-name))
-      :killed)
+       (u/retry 1 (cu/grepkill! spacetimedb-ps-name))
+       :killed))
 
     db/Pause
     (pause!
       [_this _test _node]
+      ; TODO: understand why sporadic Exception with exit code of 137 when using Docker,
+      ;       for now, retrying is effective and safe 
       (c/su
-       (cu/grepkill! :stop spacetimedb-ps-name))
+       (u/retry 1 (cu/grepkill! :stop spacetimedb-ps-name)))
       :paused)
 
     (resume!
       [_this _test _node]
-      (cu/grepkill! :cont spacetimedb-ps-name)
+      ; TODO: understand why sporadic Exception with exit code of 137 when using Docker,
+      ;       for now, retrying is effective and safe 
+      (c/su
+       (u/retry 1 (cu/grepkill! :cont spacetimedb-ps-name)))
       :resumed)))

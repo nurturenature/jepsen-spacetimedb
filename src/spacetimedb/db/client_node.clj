@@ -109,11 +109,16 @@
     db/Pause
     (pause!
       [_this _test _node]
+      ; TODO: understand why sporadic Exception with exit code of 137 when using Docker,
+      ;       for now, retrying is effective and safe 
       (c/su
-       (cu/grepkill! :stop client-node-ps-name))
+       (u/retry 1 (cu/grepkill! :stop client-node-ps-name)))
       :paused)
 
     (resume!
       [_this _test _node]
-      (cu/grepkill! :cont client-node-ps-name)
+      ; TODO: understand why sporadic Exception with exit code of 137 when using Docker,
+      ;       for now, retrying is effective and safe 
+      (c/su
+       (u/retry 1 (cu/grepkill! :cont client-node-ps-name)))
       :resumed)))
