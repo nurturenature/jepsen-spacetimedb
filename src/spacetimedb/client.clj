@@ -91,7 +91,8 @@
   client/Client
   (open!
     [{:keys [table technique] :as this} {:keys [client-timeout] :as _test} node]
-    (assert (and table technique) "SpacetimeDBClients must be created with a :table and :technique.")
+    (assert (and table technique)
+            (str "SpacetimeDBClients must be created with a :table and :technique. conn: " this))
     (assoc this
            :node    node
            :uri     (client-node/client-uri node)

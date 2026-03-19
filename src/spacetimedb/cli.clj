@@ -74,13 +74,16 @@
 
 (defn test-name
   "Given opts, returns a meaningful test name."
-  [{:keys [concurrency nemesis rate time-limit workload] :as opts}]
-  (str (name workload)
-       "-" (str/join "," (map name nemesis))
-       "-" (count (role/nodes opts client-role)) "n"
-       "-" concurrency "c"
-       "-" rate "tps"
-       "-" time-limit "s"))
+  [{:keys [concurrency nemesis nodes rate spacetimedb-node time-limit workload] :as _opts}]
+  (let [nodes (into #{} nodes)]
+    (str (name workload)
+         "-" (str/join "," (map name nemesis))
+         "-" (->> spacetimedb-node
+                  (disj nodes)
+                  (count)) "c" ; SpacetimeDB server doesn't count as a client
+         "-" concurrency "w"
+         "-" rate "tps"
+         "-" time-limit "s")))
 
 (defn spacetimedb-test
   "Given options from the CLI, constructs a test map."
