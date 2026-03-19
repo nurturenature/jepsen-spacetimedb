@@ -1,4 +1,3 @@
-import { assert } from 'console';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
@@ -38,22 +37,32 @@ async function main(): Promise<void> {
   const port = process.env.CLIENT_PORT || '3000';
   const portNumber = Number.parseInt(port);
 
-  // TODO: put in a shared type location for SpacetimeDB server
+  // TODO: put types in a shared type location for SpacetimeDB server
+  // wr-register
   type F = 'r' | 'w';
   type K = number;
   type V = number | null;
   type MOP = [F, K, V,];
   type TXN = MOP[];
 
-  const endpoint = http.createServer((req, res) => {
-    // we only know how to handle POSTs to /txn
-    const { method } = req;
+  // ledger
+  type ACCOUNT = number;
+  type BALANCE = number;
+  type ENTRY = { account: ACCOUNT, balance: BALANCE };
+  type LEDGER = ENTRY[];
+  type FROM = number;
+  type TO = number;
+  type AMOUNT = number;
+  type TRANSFER = { from: FROM, to: TO, amount: AMOUNT };
 
-    assert(
-      (method == 'POST') && (req.url == '/txn'),
-      `Invalid HTTP method / path: ${method} / ${req.url}`);
+  // REST API for Jepsen transactions
+  // /table/f/technique
+  // e.g. /registers/txn/procedure 
+  const endpoint = http.createServer(async (req, res) => {
+    const { method, url } = req;
+    console.log(`[endpoint] request: ${method} ${url}`);
 
-    // body is a String representing a Jepsen txn as JSON
+    // body is a JSON String representing a Jepsen request
     let body = '';
     req.on('data', chunk => {
       body += chunk.toString();
@@ -65,9 +74,32 @@ async function main(): Promise<void> {
         console.log(`[endpoint] request: body: "${body}"`);
 
         // TODO: document and work-a-round the extra parse, stringify
-        const result = await conn.procedures.txn({ value: body });
-        const txn: TXN = JSON.parse(result) as TXN;
-        const response = JSON.stringify({ type: 'ok', value: txn });
+
+        let response: string;
+        switch (method! + url) {
+          case "POST" + "/registers/txn/procedure":
+            const result = await conn.procedures.registersTxn({ value: body });
+            const txn: TXN = JSON.parse(result) as TXN;
+            response = JSON.stringify({ type: 'ok', value: txn });
+            break;
+
+          case "POST" + "/ledger/read/procedure":
+            const read = await conn.procedures.ledgerRead();
+            const ledger: LEDGER = JSON.parse(read) as LEDGER;
+            response = JSON.stringify({ type: 'ok', value: ledger });
+            break;
+
+          case "POST" + "/ledger/transfer/procedure":
+            const transfer: TRANSFER = JSON.parse(body) as TRANSFER;
+            await conn.procedures.ledgerTransfer(transfer);
+            response = JSON.stringify({ type: 'ok', value: transfer });
+            break;
+
+          default:
+            const message = `Unknown method + url: ${method} + ${url}.`;
+            console.error(`[endpoint] ${message}`);
+            throw new Error(message);
+        }
 
         console.log(`[endpoint] response: "${response}"`);
 

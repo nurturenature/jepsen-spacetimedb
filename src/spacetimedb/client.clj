@@ -30,10 +30,10 @@
 
 (defn invoke
   "Invokes the op against the endpoint and returns the result."
-  [op endpoint timeout]
+  [op endpoint timeout preprocess postprocess]
   (let [body   (-> op
                    (select-keys [:type :f :value]) ; don't expose rest of op map 
-                   op->json-txn)]
+                   preprocess)]
     (try+
      (let [result (http/post endpoint
                              {:body               body
@@ -43,7 +43,7 @@
                               :accept             "application/json"})
            op'    (-> result
                       :body
-                      json-result->op)]
+                      postprocess)]
        (merge op op'))
 
      (catch java.net.ConnectException ex
@@ -79,22 +79,33 @@
               :type  :info
               :error {:status 500})))))
 
+(def invoke-dispatch
+  "Maps [table f] to {:preprocess fn :postprocess fn}"
+  {["registers" "txn"] {:preprocess  op->json-txn
+                        :postprocess json-result->op}})
+
+; (.SpacetimeDBClient conn)
+; conn = {:table     SpacetimeDB table name, e.g. registers
+;         :technique SpacetimeDB technique for writes/reads, e.g. procedure}
 (defrecord SpacetimeDBClient [conn]
   client/Client
   (open!
-    [this {:keys [client-timeout] :as _test} node]
+    [{:keys [table technique] :as this} {:keys [client-timeout] :as _test} node]
+    (assert (and table technique) "SpacetimeDBClients must be created with a :table and :technique.")
     (assoc this
            :node    node
-           :uri     (str (client-node/client-uri node) "/txn")
+           :uri     (client-node/client-uri node)
            :timeout (* client-timeout 1000)))
 
   (setup!
     [_this _test])
 
   (invoke!
-    [{:keys [node uri timeout] :as _this} _test op]
-    (let [op (assoc op :node node)]
-      (invoke op uri timeout)))
+    [{:keys [node table technique timeout uri] :as _this} _test {:keys [f] :as op}]
+    (let [op  (assoc op :node node)
+          uri (str uri "/" table "/" f "/" technique)
+          {:keys [preprocess postprocess]} (get invoke-dispatch [table f])]
+      (invoke op uri timeout preprocess postprocess)))
 
   (teardown!
     [_this _test])
@@ -106,30 +117,30 @@
             :uri
             :timeout)))
 
-(defrecord SpacetimeDBClientNOOP [conn]
-  client/Client
-  (open!
-    [this {:keys [nodes] :as _test} node]
-    (info "SpacetimeDBClientNOOP/open!(" this " {:nodes " nodes "} " node ")")
-    (assoc this
-           :node node
-           :uri  nil))
-
-  (setup!
-    [this {:keys [nodes] :as _test}]
-    (info "SpacetimeDBClientNOOP/setup!(" this " {:nodes " nodes "})"))
-
-  (invoke!
-    [{:keys [node] :as _this} _test op]
-    (let [op  (assoc op :node node)]
-      (info "client ignoring: " op)
-      (assoc op :type :ok)))
-
-  (teardown!
-    [_this _test])
-
-  (close!
-    [this _test]
-    (dissoc this
-            :node
-            :uri)))
+;; (defrecord SpacetimeDBClientNOOP [conn]
+;;   client/Client
+;;   (open!
+;;     [this {:keys [nodes] :as _test} node]
+;;     (info "SpacetimeDBClientNOOP/open!(" this " {:nodes " nodes "} " node ")")
+;;     (assoc this
+;;            :node node
+;;            :uri  nil))
+;; 
+;;   (setup!
+;;     [this {:keys [nodes] :as _test}]
+;;     (info "SpacetimeDBClientNOOP/setup!(" this " {:nodes " nodes "})"))
+;; 
+;;   (invoke!
+;;     [{:keys [node] :as _this} _test op]
+;;     (let [op  (assoc op :node node)]
+;;       (info "client ignoring: " op)
+;;       (assoc op :type :ok)))
+;; 
+;;   (teardown!
+;;     [_this _test])
+;; 
+;;   (close!
+;;     [this _test]
+;;     (dissoc this
+;;             :node
+;;             :uri)))

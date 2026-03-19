@@ -65,6 +65,13 @@
   (->> (str/split spec #",")
        (mapv keyword)))
 
+(defn parse-longs-spec
+  "Takes a comma-separated string of longs and returns a collection of the longs."
+  [spec]
+  (->> (str/split spec #",")
+       (map parse-long)
+       (into #{})))
+
 (defn test-name
   "Given opts, returns a meaningful test name."
   [{:keys [concurrency nemesis rate time-limit workload] :as opts}]
@@ -124,7 +131,12 @@
 
 (def cli-opts
   "Command line options"
-  [[nil "--anomalies ANOMALIES" "A list of additional anomalies to check for."
+  [[nil "--accounts ACCOUNTS" "(ledger) A collection of account identifiers.."
+    :default  (into #{} (range 1 11))
+    :parse-fn parse-longs-spec
+    :validate [(partial every? pos?) "Must be a collection of positive integers."]]
+
+   [nil "--anomalies ANOMALIES" "A list of additional anomalies to check for."
     :default  []
     :parse-fn parse-keywords-spec
     :validate [(partial every? all-anomalies) (str "Must be a collection of anomalies: " all-anomalies ".")]]
@@ -158,6 +170,11 @@
     :default  true
     :parse-fn parse-boolean
     :validate [boolean? "Must be a Boolean."]]
+
+   [nil "--max-transfer NUM" "(ledger) The largest transfer we'll try to execute."
+    :default  10
+    :parse-fn parse-long
+    :validate [pos? "Must be a positive integer."]]
 
    [nil "--max-txn-length NUM" "Maximum number of operations per txn."
     :default  4
@@ -196,6 +213,11 @@
     :default  "spacetimedb"
     :parse-fn str
     :validate [string? "Must be a String."]]
+
+   [nil "--total-amount NUM" "(ledger) Total amount to allocate."
+    :default 100
+    :parse-fn parse-long
+    :validate [pos? "Must be a positive integer."]]
 
    [nil "--wfr-keys? BOOLEAN" "Assume that within each transaction, writes follow reads."
     :default  true

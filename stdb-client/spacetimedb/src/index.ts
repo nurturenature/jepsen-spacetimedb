@@ -1,5 +1,24 @@
 import { schema, SenderError, t, table, } from 'spacetimedb/server';
 
+// TODO: put in a shared type location for SpacetimeDB client
+
+// wr-register
+type F = 'r' | 'w';
+type K = number;
+type V = number | null;
+type MOP = [F, K, V,];
+type TXN = MOP[];
+
+// ledger
+type ACCOUNT = number;
+type BALANCE = number;
+type ENTRY = { account: ACCOUNT, balance: BALANCE };
+type LEDGER = ENTRY[];
+type FROM = number;
+type TO = number;
+type AMOUNT = number;
+type TRANSFER = { from: FROM, to: TO, amount: AMOUNT };
+
 const registers = table(
   {
     name: 'registers',
@@ -104,17 +123,10 @@ export const listRegisters = spacetimedb.reducer(ctx => {
   }
 });
 
-// TODO: put in a shared type location for SpacetimeDB client
-type F = 'r' | 'w';
-type K = number;
-type V = number | null;
-type MOP = [F, K, V,];
-type TXN = MOP[];
-
 // no try/catch, rely on:
 // - called reducer to throw SenderError
 // - or it's truly unexpected and should surface as an uncaught Error
-export const txn = spacetimedb.procedure(
+export const registersTxn = spacetimedb.procedure(
   { value: t.string() },
   t.string(),
   (ctx, { value }) => {
@@ -151,7 +163,7 @@ export const txn = spacetimedb.procedure(
 
 // ledger
 
-export const insertAccount = spacetimedb.reducer(
+export const insertLedger = spacetimedb.reducer(
   { account: t.i32(), balance: t.i32() },
   (ctx, { account, balance }) => {
     try {
@@ -162,7 +174,7 @@ export const insertAccount = spacetimedb.reducer(
   }
 );
 
-export const deleteAccount = spacetimedb.reducer(
+export const deleteLedger = spacetimedb.reducer(
   { account: t.i32() },
   (ctx, { account }) => {
     try {
@@ -173,7 +185,7 @@ export const deleteAccount = spacetimedb.reducer(
   }
 );
 
-export const updateAccount = spacetimedb.reducer(
+export const updateLedger = spacetimedb.reducer(
   { account: t.i32(), balance: t.i32() },
   (ctx, { account, balance }) => {
     const entry = ctx.db.ledger.account.find(account);
@@ -189,7 +201,7 @@ export const updateAccount = spacetimedb.reducer(
   }
 );
 
-export const upsertAccount = spacetimedb.reducer(
+export const upsertLedger = spacetimedb.reducer(
   { account: t.i32(), balance: t.i32() },
   (ctx, { account, balance }) => {
     try {
@@ -212,3 +224,47 @@ export const listLedger = spacetimedb.reducer(ctx => {
     console.info('\t', { account: entry.account, balance: entry.balance });
   }
 });
+
+export const ledgerRead = spacetimedb.procedure(
+  t.unit,
+  t.string(),
+  (ctx) => {
+    console.log('[stdb] ledgerRead');
+
+    const ledger: LEDGER = [];
+    ctx.withTx(ctx => {
+      for (const entry of ctx.db.ledger.iter()) {
+        ledger.push(entry);
+      }
+    });
+
+    const result = JSON.stringify(ledger);
+    console.log(`[stdb] result: ${result}`);
+    return result;
+  });
+
+// no try/catch, rely on:
+// - called reducer to throw SenderError
+// - or it's truly unexpected and should surface as an uncaught Error
+export const ledgerTransfer = spacetimedb.procedure(
+  { from: t.i32(), to: t.i32(), amount: t.i32() },
+  t.unit(),
+  (ctx, { from, to, amount }) => {
+    console.log(`[stdb] ledgerTransfer: "${{ from: from, to: to, amount: amount }}"`);
+
+    ctx.withTx(ctx => {
+      const from_row = ctx.db.ledger.account.find(from);
+      const to_row = ctx.db.ledger.account.find(to);
+      if (!from_row || !to_row) {
+        throw new SenderError(`Could not find both from and to accounts for transfer: ${{ from: from, to: to, amount: amount }}`);
+      }
+
+      from_row.balance -= amount;
+      to_row.balance += amount;
+
+      updateLedger(ctx, from_row);
+      updateLedger(ctx, to_row);
+    });
+
+    return {};
+  });

@@ -34,19 +34,21 @@ import {
 } from "spacetimedb";
 
 // Import all reducer arg schemas
-import DeleteAccountReducer from "./delete_account_reducer";
+import DeleteLedgerReducer from "./delete_ledger_reducer";
 import DeleteRegisterReducer from "./delete_register_reducer";
-import InsertAccountReducer from "./insert_account_reducer";
+import InsertLedgerReducer from "./insert_ledger_reducer";
 import InsertRegisterReducer from "./insert_register_reducer";
 import ListLedgerReducer from "./list_ledger_reducer";
 import ListRegistersReducer from "./list_registers_reducer";
-import UpdateAccountReducer from "./update_account_reducer";
+import UpdateLedgerReducer from "./update_ledger_reducer";
 import UpdateRegisterReducer from "./update_register_reducer";
-import UpsertAccountReducer from "./upsert_account_reducer";
+import UpsertLedgerReducer from "./upsert_ledger_reducer";
 import UpsertRegisterReducer from "./upsert_register_reducer";
 
 // Import all procedure arg schemas
-import * as TxnProcedure from "./txn_procedure";
+import * as LedgerTransferProcedure from "./ledger_transfer_procedure";
+import * as RegistersTxnProcedure from "./registers_txn_procedure";
+import * as UnitProcedure from "./unit_procedure";
 
 // Import all table schema definitions
 import LedgerRow from "./ledger_table";
@@ -82,21 +84,23 @@ const tablesSchema = __schema({
 
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
 const reducersSchema = __reducers(
-  __reducerSchema("delete_account", DeleteAccountReducer),
+  __reducerSchema("delete_ledger", DeleteLedgerReducer),
   __reducerSchema("delete_register", DeleteRegisterReducer),
-  __reducerSchema("insert_account", InsertAccountReducer),
+  __reducerSchema("insert_ledger", InsertLedgerReducer),
   __reducerSchema("insert_register", InsertRegisterReducer),
   __reducerSchema("list_ledger", ListLedgerReducer),
   __reducerSchema("list_registers", ListRegistersReducer),
-  __reducerSchema("update_account", UpdateAccountReducer),
+  __reducerSchema("update_ledger", UpdateLedgerReducer),
   __reducerSchema("update_register", UpdateRegisterReducer),
-  __reducerSchema("upsert_account", UpsertAccountReducer),
+  __reducerSchema("upsert_ledger", UpsertLedgerReducer),
   __reducerSchema("upsert_register", UpsertRegisterReducer),
 );
 
 /** The schema information for all procedures in this module. This is defined the same way as the procedures would have been defined in the server. */
 const proceduresSchema = __procedures(
-  __procedureSchema("txn", TxnProcedure.params, TxnProcedure.returnType),
+  __procedureSchema("ledger_transfer", LedgerTransferProcedure.params, LedgerTransferProcedure.returnType),
+  __procedureSchema("registers_txn", RegistersTxnProcedure.params, RegistersTxnProcedure.returnType),
+  __procedureSchema("unit", UnitProcedure.params, UnitProcedure.returnType),
 );
 
 /** The remote SpacetimeDB module schema, both runtime and type information. */

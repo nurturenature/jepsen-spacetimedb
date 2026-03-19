@@ -32,6 +32,7 @@
             client-role      (client-node/client-node)}))
 
 (defn restricted-client
-  "Returns a restricted client specific to the client-role."
-  []
-  (role/restrict-client client-role (client/->SpacetimeDBClient nil)))
+  "Returns a restricted client specific to the client-role, SpacetimeDB table and technique."
+  [table technique]
+  (role/restrict-client client-role (client/->SpacetimeDBClient {:table     table
+                                                                 :technique technique})))
