@@ -7,19 +7,19 @@ docker build \
        -t jepsen-control \
        --build-arg JEPSEN_REGISTRY="ghcr.io/nurturenature/jepsen-docker/" \
        -f jepsen-control.Dockerfile \
-       .
+       ..
 
 docker build \
        -t jepsen-node \
        --build-arg JEPSEN_REGISTRY="ghcr.io/nurturenature/jepsen-docker/" \
        -f jepsen-node.Dockerfile \
-       .
+       ..
 
 docker build \
        -t jepsen-setup \
        --build-arg JEPSEN_REGISTRY="ghcr.io/nurturenature/jepsen-docker/" \
        -f jepsen-setup.Dockerfile \
-       .
+       ..
 
 echo
 echo "pruning docker images..."
