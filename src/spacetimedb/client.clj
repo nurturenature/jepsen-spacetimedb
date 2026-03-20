@@ -3,7 +3,6 @@
    `db/invoke!` is a HTTP call to the server that returns the results in the `op`."
   (:require [cheshire.core :as json]
             [clj-http.client :as http]
-            [clojure.tools.logging :refer [info]]
             [jepsen.client :as client]
             [slingshot.slingshot :refer [try+]]
             [spacetimedb.db.client-node :as client-node]))
@@ -81,8 +80,8 @@
 
 (def invoke-dispatch
   "Maps [table f] to {:preprocess fn :postprocess fn}"
-  {["registers" "txn"] {:preprocess  op->json-txn
-                        :postprocess json-result->op}})
+  {["registers" :txn] {:preprocess  op->json-txn
+                       :postprocess json-result->op}})
 
 ; (.SpacetimeDBClient conn)
 ; conn = {:table     SpacetimeDB table name, e.g. registers
@@ -90,13 +89,15 @@
 (defrecord SpacetimeDBClient [conn]
   client/Client
   (open!
-    [{:keys [table technique] :as this} {:keys [client-timeout] :as _test} node]
-    (assert (and table technique)
-            (str "SpacetimeDBClients must be created with a :table and :technique. conn: " this))
+    [this {:keys [client-timeout spacetimedb] :as _test} node]
+    (assert (every? spacetimedb #{:table :technique})
+            "SpacetimeDBClients expect a test containing {:spacetimedb {:table \"\" :technique \"\"}}")
     (assoc this
-           :node    node
-           :uri     (client-node/client-uri node)
-           :timeout (* client-timeout 1000)))
+           :node      node
+           :uri       (client-node/client-uri node)
+           :timeout   (* client-timeout 1000)
+           :table     (:table     spacetimedb)
+           :technique (:technique spacetimedb)))
 
   (setup!
     [_this _test])
@@ -104,7 +105,7 @@
   (invoke!
     [{:keys [node table technique timeout uri] :as _this} _test {:keys [f] :as op}]
     (let [op  (assoc op :node node)
-          uri (str uri "/" table "/" f "/" technique)
+          uri (str uri "/" table "/" (name f) "/" technique)
           {:keys [preprocess postprocess]} (get invoke-dispatch [table f])]
       (invoke op uri timeout preprocess postprocess)))
 

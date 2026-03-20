@@ -16,8 +16,9 @@
     :max-transfer  max-transfer
     :total-amount  total-amount}
    {:db     (role/roles-based-db opts)
-    :client (role/restricted-client "ledger" "procedure")
-    :roles  (role/roles-map opts)}))
+    :client (role/restricted-client)
+    :roles  (role/roles-map opts)
+    :spacetimedb {:table "ledger" :technique "procedure"}}))
 
 (defn wr-register-procedure
   "A SpacetimeDB workload where all reads/writes to an Integer/Integer key/value register
@@ -26,6 +27,7 @@
   (merge
    (wr/test opts)
    {:db     (role/roles-based-db opts)
-    :client (role/restricted-client "registers" "procedure")
-    :roles  (role/roles-map opts)}))
+    :client (role/restricted-client)
+    :roles  (role/roles-map opts)
+    :spacetimedb {:table "registers" :technique "procedure"}}))
 

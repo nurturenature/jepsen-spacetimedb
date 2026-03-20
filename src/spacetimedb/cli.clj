@@ -6,13 +6,11 @@
              [checker :as checker]
              [cli :as cli]
              [generator :as gen]
-             [role :as role]
              [tests :as tests]]
             [jepsen.checker.timeline :as timeline]
             [jepsen.os.debian :as debian]
             [spacetimedb
              [nemesis :as nemesis]
-             [role :refer [client-role]]
              [workload :as workload]]
             [spacetimedb.db
              [client-node :as client-node]
@@ -130,7 +128,8 @@
 
                         (gen/log "Final workload")
                         (->> (:final-generator workload)
-                             (gen/stagger (/ (:rate opts)))))})))
+                             (gen/stagger (/ (:rate opts)))))
+            :spacetimedb (:spacetimedb workload)})))
 
 (def cli-opts
   "Command line options"
