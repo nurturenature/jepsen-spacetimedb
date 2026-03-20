@@ -40,6 +40,7 @@ import InsertLedgerReducer from "./insert_ledger_reducer";
 import InsertRegisterReducer from "./insert_register_reducer";
 import ListLedgerReducer from "./list_ledger_reducer";
 import ListRegistersReducer from "./list_registers_reducer";
+import SetupLedgerReducer from "./setup_ledger_reducer";
 import UpdateLedgerReducer from "./update_ledger_reducer";
 import UpdateRegisterReducer from "./update_register_reducer";
 import UpsertLedgerReducer from "./upsert_ledger_reducer";
@@ -90,6 +91,7 @@ const reducersSchema = __reducers(
   __reducerSchema("insert_register", InsertRegisterReducer),
   __reducerSchema("list_ledger", ListLedgerReducer),
   __reducerSchema("list_registers", ListRegistersReducer),
+  __reducerSchema("setup_ledger", SetupLedgerReducer),
   __reducerSchema("update_ledger", UpdateLedgerReducer),
   __reducerSchema("update_register", UpdateRegisterReducer),
   __reducerSchema("upsert_ledger", UpsertLedgerReducer),

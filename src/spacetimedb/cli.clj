@@ -134,7 +134,7 @@
 (def cli-opts
   "Command line options"
   [[nil "--accounts ACCOUNTS" "(ledger) A collection of account identifiers.."
-    :default  (into #{} (range 1 11))
+    :default  (into [] (range 1 11))
     :parse-fn parse-longs-spec
     :validate [(partial every? pos?) "Must be a collection of positive integers."]]
 

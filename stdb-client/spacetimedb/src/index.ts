@@ -225,6 +225,23 @@ export const listLedger = spacetimedb.reducer(ctx => {
   }
 });
 
+export const setupLedger = spacetimedb.reducer(
+  { accounts: t.array(t.i32()), balance: t.i32() },
+  (ctx, { accounts, balance }) => {
+    console.log(`[stdb] ledgerSetup: { accounts: ${accounts}, balance: ${balance} }`);
+
+    // TODO: is there a better way?
+    for (const entry of ctx.db.ledger.iter()) {
+      deleteLedger(ctx, { account: entry.account });
+    }
+
+    for (const account of accounts) {
+      upsertLedger(ctx, { account: account, balance: balance });
+    }
+
+    return;
+  });
+
 export const ledgerRead = spacetimedb.procedure(
   t.unit,
   t.string(),

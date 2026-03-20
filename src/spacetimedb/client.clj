@@ -10,22 +10,26 @@
 (defn op->json-txn
   "Given an op, encodes its `:value`, a transaction, as a json string."
   [{:keys [type f value] :as op}]
-  (assert (and (= type :invoke) (= f :txn) value)
+  (assert (and (= type :invoke) (#{:txn :transfer :read} f))
           (str "Invalid :type and/or :f and/or :value in op: " op))
   (json/generate-string value))
 
 (defn json-result->op
-  "Given a json string, decodes it into an op.
+  "Given an f and a json string, decodes it into an op.
    Only care about the type, value, and error keys."
-  [json-string]
-  (-> json-string
-      (json/decode true)
-      (select-keys [:type :value :error])
-      (update :type  keyword)
-      (update :value (fn [txn]
-                       (->> txn
-                            (mapv (fn [[f k v]]
-                                    [(keyword f) k v])))))))
+  [f json-string]
+  (let [op (-> json-string
+               (json/decode true)
+               (select-keys [:type :value :error])
+               (update :type  keyword)
+               (update :value (fn [value]
+                                (case f
+                                  :txn      (->> value
+                                                 (mapv (fn [[f k v]]
+                                                         [(keyword f) k v])))
+                                  :transfer value
+                                  :read     (apply merge value)))))]
+    op))
 
 (defn invoke
   "Invokes the op against the endpoint and returns the result."
@@ -80,8 +84,16 @@
 
 (def invoke-dispatch
   "Maps [table f] to {:preprocess fn :postprocess fn}"
-  {["registers" :txn] {:preprocess  op->json-txn
-                       :postprocess json-result->op}})
+  {["registers" :txn]      {:preprocess  op->json-txn
+                            :postprocess (partial json-result->op :txn)}
+   ["ledger"    :transfer] {:preprocess  op->json-txn
+                            :postprocess (partial json-result->op :transfer)}
+   ["ledger"    :read]     {:preprocess  op->json-txn
+                            :postprocess (partial json-result->op :read)}})
+
+(def spacetimedb-setup?
+  "First client initializes db."
+  (atom false))
 
 ; (.SpacetimeDBClient conn)
 ; conn = {:table     SpacetimeDB table name, e.g. registers
@@ -100,10 +112,21 @@
            :technique (:technique spacetimedb)))
 
   (setup!
-    [_this _test])
+    [{:keys [timeout uri] :as _this} {:keys [accounts total-amount] :as _test}]
+    ; first client sets up db
+    (locking spacetimedb-setup?
+      (when-not @spacetimedb-setup?
+        (http/post (str uri "/ledger/setup")
+                   {:body               (json/encode {:accounts accounts
+                                                      :balance  (quot total-amount (count accounts))})
+                    :content-type       "application/json"
+                    :socket-timeout     timeout
+                    :connection-timeout timeout
+                    :accept             "application/json"})
+        (swap! spacetimedb-setup? (constantly true)))))
 
   (invoke!
-    [{:keys [node table technique timeout uri] :as _this} _test {:keys [f] :as op}]
+    [{:keys [node table technique timeout uri] :as this} _test {:keys [f] :as op}]
     (let [op  (assoc op :node node)
           uri (str uri "/" table "/" (name f) "/" technique)
           {:keys [preprocess postprocess]} (get invoke-dispatch [table f])]

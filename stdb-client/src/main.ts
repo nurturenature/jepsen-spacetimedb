@@ -54,6 +54,9 @@ async function main(): Promise<void> {
   type TO = number;
   type AMOUNT = number;
   type TRANSFER = { from: FROM, to: TO, amount: AMOUNT };
+  // /ledger/setup
+  type ACCOUNTS = ACCOUNT[];
+  type SETUP = { accounts: ACCOUNTS, balance: BALANCE };
 
   // REST API for Jepsen transactions
   // /table/f/technique
@@ -84,9 +87,15 @@ async function main(): Promise<void> {
             break;
 
           case "POST" + "/ledger/read/procedure":
-            const read = await conn.procedures.ledgerRead();
+            const read = await conn.procedures.ledgerRead({});
             const ledger: LEDGER = JSON.parse(read) as LEDGER;
             response = JSON.stringify({ type: 'ok', value: ledger });
+            break;
+
+          case "POST" + "/ledger/setup":
+            const setup: SETUP = JSON.parse(body) as SETUP;
+            await conn.reducers.setupLedger(setup);
+            response = JSON.stringify({ type: 'ok' });
             break;
 
           case "POST" + "/ledger/transfer/procedure":
