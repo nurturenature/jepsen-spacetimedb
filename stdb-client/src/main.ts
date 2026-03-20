@@ -90,6 +90,10 @@ async function main(): Promise<void> {
             const read = await conn.procedures.ledgerRead({});
             const ledger: LEDGER = JSON.parse(read) as LEDGER;
 
+            // TODO: remove debugging
+            console.log(`[endpoint][/ledger/read/procedure] read: ${read}`);
+            console.log(`[endpoint][/ledger/read/procedure] ledger: ${ledger}`);
+
             // convert to a Jepsen style response
             const ledger_map = new Map<number, number>();
             for (const entry of ledger) {
@@ -161,6 +165,16 @@ function onConnect(
       } else {
         for (const register of registers) {
           console.log('\t', { k: register.k, v: register.v });
+        }
+      }
+
+      const ledger = [...ctx.db.ledger.iter()];
+      console.log(`\nCurrent ledger (${ledger.length}):`);
+      if (ledger.length === 0) {
+        console.log('\t', '(none yet)');
+      } else {
+        for (const entry of ledger) {
+          console.log('\t', entry);
         }
       }
 

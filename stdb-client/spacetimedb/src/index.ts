@@ -118,7 +118,7 @@ export const upsertRegister = spacetimedb.reducer(
 
 export const listRegisters = spacetimedb.reducer(ctx => {
   console.info('listRegisters:');
-  for (const register of ctx.db.registers.iter()) {
+  for (const register of [...ctx.db.registers.iter()]) {
     console.info('\t', { k: register.k, v: register.v });
   }
 });
@@ -220,7 +220,7 @@ export const upsertLedger = spacetimedb.reducer(
 
 export const listLedger = spacetimedb.reducer(ctx => {
   console.info('listLedger:');
-  for (const entry of ctx.db.ledger.iter()) {
+  for (const entry of [...ctx.db.ledger.iter()]) {
     console.info('\t', { account: entry.account, balance: entry.balance });
   }
 });
@@ -231,7 +231,7 @@ export const setupLedger = spacetimedb.reducer(
     console.log(`[stdb] ledgerSetup: { accounts: ${accounts}, balance: ${balance} }`);
 
     // TODO: is there a better way?
-    for (const entry of ctx.db.ledger.iter()) {
+    for (const entry of [...ctx.db.ledger.iter()]) {
       deleteLedger(ctx, { account: entry.account });
     }
 
@@ -246,17 +246,17 @@ export const ledgerRead = spacetimedb.procedure(
   {},
   t.string(),
   (ctx, { }) => {
-    console.log('[stdb] ledgerRead');
+    console.log('[stdb][ledgerRead] invoke');
 
     const ledger: LEDGER = [];
     ctx.withTx(ctx => {
-      for (const entry of ctx.db.ledger.iter()) {
+      for (const entry of [...ctx.db.ledger.iter()]) {
         ledger.push(entry);
       }
     });
 
     const result = JSON.stringify(ledger);
-    console.log(`[stdb] result: ${result}`);
+    console.log(`[stdb][ledgerRead] return: ${result}`);
     return result;
   });
 
