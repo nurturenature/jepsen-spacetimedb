@@ -47,9 +47,9 @@ import UpsertLedgerReducer from "./upsert_ledger_reducer";
 import UpsertRegisterReducer from "./upsert_register_reducer";
 
 // Import all procedure arg schemas
+import * as LedgerReadProcedure from "./ledger_read_procedure";
 import * as LedgerTransferProcedure from "./ledger_transfer_procedure";
 import * as RegistersTxnProcedure from "./registers_txn_procedure";
-import * as UnitProcedure from "./unit_procedure";
 
 // Import all table schema definitions
 import LedgerRow from "./ledger_table";
@@ -100,9 +100,9 @@ const reducersSchema = __reducers(
 
 /** The schema information for all procedures in this module. This is defined the same way as the procedures would have been defined in the server. */
 const proceduresSchema = __procedures(
+  __procedureSchema("ledger_read", LedgerReadProcedure.params, LedgerReadProcedure.returnType),
   __procedureSchema("ledger_transfer", LedgerTransferProcedure.params, LedgerTransferProcedure.returnType),
   __procedureSchema("registers_txn", RegistersTxnProcedure.params, RegistersTxnProcedure.returnType),
-  __procedureSchema("unit", UnitProcedure.params, UnitProcedure.returnType),
 );
 
 /** The remote SpacetimeDB module schema, both runtime and type information. */

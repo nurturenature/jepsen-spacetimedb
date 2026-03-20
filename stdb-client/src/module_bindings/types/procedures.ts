@@ -6,14 +6,14 @@
 import { type Infer as __Infer } from "spacetimedb";
 
 // Import all procedure arg schemas
+import * as LedgerReadProcedure from "../ledger_read_procedure";
 import * as LedgerTransferProcedure from "../ledger_transfer_procedure";
 import * as RegistersTxnProcedure from "../registers_txn_procedure";
-import * as UnitProcedure from "../unit_procedure";
 
+export type LedgerReadArgs = __Infer<typeof LedgerReadProcedure.params>;
+export type LedgerReadResult = __Infer<typeof LedgerReadProcedure.returnType>;
 export type LedgerTransferArgs = __Infer<typeof LedgerTransferProcedure.params>;
 export type LedgerTransferResult = __Infer<typeof LedgerTransferProcedure.returnType>;
 export type RegistersTxnArgs = __Infer<typeof RegistersTxnProcedure.params>;
 export type RegistersTxnResult = __Infer<typeof RegistersTxnProcedure.returnType>;
-export type UnitArgs = __Infer<typeof UnitProcedure.params>;
-export type UnitResult = __Infer<typeof UnitProcedure.returnType>;
 

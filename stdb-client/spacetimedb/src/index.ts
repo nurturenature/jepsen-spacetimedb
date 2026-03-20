@@ -243,9 +243,9 @@ export const setupLedger = spacetimedb.reducer(
   });
 
 export const ledgerRead = spacetimedb.procedure(
-  t.unit,
+  {},
   t.string(),
-  (ctx) => {
+  (ctx, { }) => {
     console.log('[stdb] ledgerRead');
 
     const ledger: LEDGER = [];
