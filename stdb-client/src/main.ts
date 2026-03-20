@@ -89,7 +89,14 @@ async function main(): Promise<void> {
           case "POST" + "/ledger/read/procedure":
             const read = await conn.procedures.ledgerRead({});
             const ledger: LEDGER = JSON.parse(read) as LEDGER;
-            response = JSON.stringify({ type: 'ok', value: ledger });
+
+            // convert to a Jepsen style response
+            const ledger_map = new Map<number, number>();
+            for (const entry of ledger) {
+              ledger_map.set(entry.account, entry.balance);
+            }
+
+            response = JSON.stringify({ type: 'ok', value: ledger_map });
             break;
 
           case "POST" + "/ledger/setup":

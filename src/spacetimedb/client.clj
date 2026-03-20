@@ -126,7 +126,7 @@
         (swap! spacetimedb-setup? (constantly true)))))
 
   (invoke!
-    [{:keys [node table technique timeout uri] :as this} _test {:keys [f] :as op}]
+    [{:keys [node table technique timeout uri] :as _this} _test {:keys [f] :as op}]
     (let [op  (assoc op :node node)
           uri (str uri "/" table "/" (name f) "/" technique)
           {:keys [preprocess postprocess]} (get invoke-dispatch [table f])]
