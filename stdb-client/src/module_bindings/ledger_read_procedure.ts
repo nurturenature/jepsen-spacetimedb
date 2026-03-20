@@ -10,6 +10,10 @@ import {
   type Infer as __Infer,
 } from "spacetimedb";
 
+import {
+  Entry,
+} from "./types";
+
 export const params = {
 };
-export const returnType = __t.string()
+export const returnType = __t.array(Entry)

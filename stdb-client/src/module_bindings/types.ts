@@ -10,6 +10,12 @@ import {
   type Infer as __Infer,
 } from "spacetimedb";
 
+export const Entry = __t.object("Entry", {
+  account: __t.i32(),
+  balance: __t.i32(),
+});
+export type Entry = __Infer<typeof Entry>;
+
 export const Ledger = __t.object("Ledger", {
   account: __t.i32(),
   balance: __t.i32(),

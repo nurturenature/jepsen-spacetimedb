@@ -28,7 +28,12 @@
                                                  (mapv (fn [[f k v]]
                                                          [(keyword f) k v])))
                                   :transfer value
-                                  :read     (apply merge value)))))]
+                                  :read     (->> value
+                                                 (map (fn [entry] ; {"account" integer "balance" integer}
+                                                        (let [account (get entry "account")
+                                                              balance (get entry "balance")]
+                                                          [account balance])))
+                                                 (into {}))))))]
     op))
 
 (defn invoke

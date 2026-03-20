@@ -10,10 +10,10 @@ type MOP = [F, K, V,];
 type TXN = MOP[];
 
 // ledger
-type ACCOUNT = number;
-type BALANCE = number;
-type ENTRY = { account: ACCOUNT, balance: BALANCE };
-type LEDGER = ENTRY[];
+const ACCOUNT = t.i32();
+const BALANCE = t.i32();
+const ENTRY = t.object('Entry', { account: ACCOUNT, balance: BALANCE });
+const LEDGER = t.array(ENTRY);
 type FROM = number;
 type TO = number;
 type AMOUNT = number;
@@ -36,8 +36,8 @@ const ledger = table(
     public: true
   },
   {
-    account: t.i32().primaryKey(),
-    balance: t.i32(),
+    account: ACCOUNT.primaryKey(),
+    balance: BALANCE,
   }
 );
 
@@ -244,20 +244,17 @@ export const setupLedger = spacetimedb.reducer(
 
 export const ledgerRead = spacetimedb.procedure(
   {},
-  t.string(),
+  t.array(ENTRY),
   (ctx, { }) => {
     console.log('[stdb][ledgerRead] invoke');
 
-    const ledger: LEDGER = [];
+    let ledger: { account: number, balance: number }[] = [];
     ctx.withTx(ctx => {
-      for (const entry of [...ctx.db.ledger.iter()]) {
-        ledger.push(entry);
-      }
+      ledger = [...ctx.db.ledger.iter()];
     });
 
-    const result = JSON.stringify(ledger);
-    console.log(`[stdb][ledgerRead] return: ${result}`);
-    return result;
+    console.log('[stdb][ledgerRead] returning ledger: ', ledger);
+    return ledger;
   });
 
 // no try/catch, rely on:
