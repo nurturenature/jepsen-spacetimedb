@@ -24,11 +24,12 @@ RUN apt-get -qy update && \
 WORKDIR /jepsen/jepsen-spacetimedb/jepsen-spacetimedb/stdb-client
 COPY ./stdb-client/package*.json ./
 RUN npm install
+WORKDIR /jepsen/jepsen-spacetimedb
+RUN rm -rf jepsen-spacetimedb
 
-# cp repository
-WORKDIR /jepsen/jepsen-spacetimedb/jepsen-spacetimedb
-COPY --parents ./.* ./
-COPY --parents ./*  ./
+# can't use COPY --parents as GitHub actions don't support --parents
+WORKDIR /jepsen/jepsen-spacetimedb
+RUN git clone -b main --depth 1 --single-branch https://github.com/nurturenature/jepsen-spacetimedb.git
 
 # deps
 WORKDIR /jepsen/jepsen-spacetimedb/jepsen-spacetimedb/stdb-client
