@@ -28,11 +28,9 @@
                                                  (mapv (fn [[f k v]]
                                                          [(keyword f) k v])))
                                   :transfer value
-                                  :read     (->> value
-                                                 (map (fn [entry] ; {"account" integer "balance" integer}
-                                                        (let [account (get entry "account")
-                                                              balance (get entry "balance")]
-                                                          [account balance])))
+                                  :read     (->> value ; [{:account integer :balance integer}...]
+                                                 (map (fn [{:keys [account balance] :as _entry}]
+                                                        [account balance]))
                                                  (into {}))))))]
     op))
 
