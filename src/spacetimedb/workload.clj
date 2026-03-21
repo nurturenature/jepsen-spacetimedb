@@ -6,15 +6,17 @@
 (defn ledger-procedure
   "A SpacetimeDB workload where all reads/writes to an i32/i32 account/balance ledger
    happen in a transaction in a Procedure."
-  [{:keys [accounts max-transfer total-amount] :as opts}]
-  (assert (and accounts max-transfer total-amount)
-          (str "opts must have :accounts :max-transfer :total-amount, opts: " opts))
+  [{:keys [accounts max-transfer negative-balances? total total-amount] :as opts}]
+  (assert (and accounts max-transfer negative-balances? total total-amount)
+          (str "opts must have :accounts :max-transfer :negative-balances? :total :total-amount, opts: " opts))
   (merge
    (bank/test opts)
    ; bank/test inappropriately overrides these
-   {:accounts      accounts
-    :max-transfer  max-transfer
-    :total-amount  total-amount}
+   {:accounts           accounts
+    :max-transfer       max-transfer
+    :negative-balances? negative-balances?
+    :total              total
+    :total-amount       total-amount}
    {:db     (role/roles-based-db opts)
     :client (role/restricted-client)
     :roles  (role/roles-map opts)

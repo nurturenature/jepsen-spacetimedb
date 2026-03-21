@@ -188,6 +188,11 @@
     :parse-fn parse-long
     :validate [pos? "Must be a positive integer."]]
 
+   [nil "--negative-balances? BOOLEAN" "(ledger) Is it ok for account balances to be negative?."
+    :default  true
+    :parse-fn parse-boolean
+    :validate [boolean? "Must be a Boolean."]]
+
    [nil "--nemesis FAULTS" "A comma-separated list of nemesis faults to enable"
     :parse-fn parse-nemesis-spec
     :validate [(partial every? nemeses)
@@ -217,6 +222,11 @@
     :validate [string? "Must be a String."]]
 
    [nil "--total-amount NUM" "(ledger) Total amount to allocate."
+    :default 100
+    :parse-fn parse-long
+    :validate [pos? "Must be a positive integer."]]
+
+   [nil "--total NUM" "(ledger) Total each read of all accounts."
     :default 100
     :parse-fn parse-long
     :validate [pos? "Must be a positive integer."]]
