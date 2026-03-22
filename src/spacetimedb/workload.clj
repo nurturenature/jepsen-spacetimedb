@@ -7,7 +7,7 @@
   "A SpacetimeDB workload where all reads/writes to an i32/i32 account/balance ledger
    happen in a transaction in a Procedure."
   [{:keys [accounts max-transfer negative-balances? total total-amount] :as opts}]
-  (assert (and accounts max-transfer negative-balances? total total-amount)
+  (assert (and accounts max-transfer (not negative-balances?) total total-amount)
           (str "opts must have :accounts :max-transfer :negative-balances? :total :total-amount, opts: " opts))
   (merge
    (bank/test opts)
