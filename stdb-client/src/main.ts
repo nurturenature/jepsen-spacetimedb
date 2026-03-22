@@ -84,8 +84,7 @@ async function main(): Promise<void> {
             break;
 
           case "POST" + "/ledger/read/procedure":
-            const read = await conn.procedures.ledgerRead({});
-            const ledger: LEDGER = JSON.parse(read) as LEDGER;
+            const ledger = await conn.procedures.ledgerRead({});
             response = JSON.stringify({ type: 'ok', value: ledger });
             break;
 
