@@ -50,8 +50,8 @@ async function main(): Promise<void> {
   type BALANCE = number;
   type ENTRY = { account: ACCOUNT, balance: BALANCE };
   type LEDGER = ENTRY[];
-  type FROM = number;
-  type TO = number;
+  type FROM = ACCOUNT;
+  type TO = ACCOUNT;
   type AMOUNT = number;
   type TRANSFER = { from: FROM, to: TO, amount: AMOUNT };
   // /ledger/setup
@@ -73,10 +73,7 @@ async function main(): Promise<void> {
 
     req.on('end', async () => {
       try {
-        // TODO: remove debugging
-        console.log(`[endpoint] request: body: "${body}"`);
-
-        // TODO: document and work-a-round the extra parse, stringify
+        console.log(`[endpoint] request: body: ${body}`);
 
         let response: string;
         switch (method! + url) {
@@ -87,11 +84,8 @@ async function main(): Promise<void> {
             break;
 
           case "POST" + "/ledger/read/procedure":
-            const ledger = await conn.procedures.ledgerRead({});
-
-            // TODO: remove debugging
-            console.log(`[endpoint][/ledger/read/procedure] ledger: ${ledger}`);
-
+            const read = await conn.procedures.ledgerRead({});
+            const ledger: LEDGER = JSON.parse(read) as LEDGER;
             response = JSON.stringify({ type: 'ok', value: ledger });
             break;
 
@@ -121,7 +115,8 @@ async function main(): Promise<void> {
       } catch (error: any) {
         console.log(`[endpoint] error: ${error.toString()}`);
         const response = JSON.stringify({ 'type': 'info', 'error': error.toString() });
-        console.log(`[endpoint] response: "${response}"`);
+
+        console.log(`[endpoint] error: response: "${response}"`);
 
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(response);

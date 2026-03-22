@@ -14,10 +14,10 @@ const ACCOUNT = t.i32();
 const BALANCE = t.i32();
 const ENTRY = t.object('Entry', { account: ACCOUNT, balance: BALANCE });
 const LEDGER = t.array(ENTRY);
-type FROM = number;
-type TO = number;
-type AMOUNT = number;
-type TRANSFER = { from: FROM, to: TO, amount: AMOUNT };
+const FROM = ACCOUNT;
+const TO = ACCOUNT;
+const AMOUNT = t.i32();
+const TRANSFER = t.object('Transfer', { from: FROM, to: TO, amount: AMOUNT });
 
 const registers = table(
   {
@@ -261,10 +261,10 @@ export const ledgerRead = spacetimedb.procedure(
 // - called reducer to throw SenderError
 // - or it's truly unexpected and should surface as an uncaught Error
 export const ledgerTransfer = spacetimedb.procedure(
-  { from: t.i32(), to: t.i32(), amount: t.i32() },
+  { from: ACCOUNT, to: ACCOUNT, amount: AMOUNT },
   t.unit(),
   (ctx, { from, to, amount }) => {
-    console.log(`[stdb] ledgerTransfer: "${{ from: from, to: to, amount: amount }}"`);
+    console.log(`[stdb][ledgerTransfer]: "${{ from: from, to: to, amount: amount }}"`);
 
     ctx.withTx(ctx => {
       const from_row = ctx.db.ledger.account.find(from);
@@ -273,11 +273,17 @@ export const ledgerTransfer = spacetimedb.procedure(
         throw new SenderError(`Could not find both from and to accounts for transfer: ${{ from: from, to: to, amount: amount }}`);
       }
 
-      from_row.balance -= amount;
+      // don't allow negative balances
+      // do transfer->to first and then test transfer<-from for negative
+      // throwing SenderError will test aborting the transaction
       to_row.balance += amount;
-
-      updateLedger(ctx, from_row);
       updateLedger(ctx, to_row);
+
+      from_row.balance -= amount;
+      if (from_row.balance < 0) {
+        throw new SenderError(`transfer would cause a negative balance: ${from_row} < 0`);
+      }
+      updateLedger(ctx, from_row);
     });
 
     return {};

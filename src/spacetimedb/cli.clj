@@ -189,7 +189,7 @@
     :validate [pos? "Must be a positive integer."]]
 
    [nil "--negative-balances? BOOLEAN" "(ledger) Is it ok for account balances to be negative?."
-    :default  true
+    :default  false
     :parse-fn parse-boolean
     :validate [boolean? "Must be a Boolean."]]
 
