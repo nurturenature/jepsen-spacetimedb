@@ -89,7 +89,7 @@ async function main(): Promise<void> {
             break;
 
           case "POST" + "/ledger/read/view":
-            const view = await conn.procedures.ledgerView();
+            const view = await conn.views.ledgerView();
             response = JSON.stringify({ type: 'ok', value: view });
             break;
 

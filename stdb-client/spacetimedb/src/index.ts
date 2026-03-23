@@ -258,14 +258,14 @@ export const ledgerRead = spacetimedb.procedure(
   });
 
 export const ledgerView = spacetimedb.view(
-  { name: 'ledger_view', public: true },
+  { name: 'ledgerView', public: true },
   t.array(ENTRY),
-  (ctx) => {
+  ctx => {
     console.log('[stdb][ledgerView] invoke');
 
     const ledger = [...ctx.db.ledger.iter()];
 
-    console.log('[stdb][ledgerRead] returning ledger: ', ledger);
+    console.log('[stdb][ledgerView] returning ledger: ', ledger);
     return ledger;
   });
 

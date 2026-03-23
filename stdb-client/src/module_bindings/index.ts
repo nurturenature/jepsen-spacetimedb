@@ -83,7 +83,7 @@ const tablesSchema = __schema({
     ],
   }, RegistersRow),
   ledgerView: __table({
-    name: 'ledger_view',
+    name: 'ledgerView',
     indexes: [
     ],
     constraints: [
