@@ -22,9 +22,6 @@ export const Ledger = __t.object("Ledger", {
 });
 export type Ledger = __Infer<typeof Ledger>;
 
-export const LedgerView = __t.object("LedgerView", {});
-export type LedgerView = __Infer<typeof LedgerView>;
-
 export const Registers = __t.object("Registers", {
   k: __t.i32(),
   v: __t.i32(),

@@ -257,18 +257,6 @@ export const ledgerRead = spacetimedb.procedure(
     return ledger;
   });
 
-export const ledgerView = spacetimedb.view(
-  { name: 'ledgerView', public: true },
-  t.array(ENTRY),
-  ctx => {
-    console.log('[stdb][ledgerView] invoke');
-
-    const ledger = [...ctx.db.ledger.iter()];
-
-    console.log('[stdb][ledgerView] returning ledger: ', ledger);
-    return ledger;
-  });
-
 // no try/catch, rely on:
 // - called reducer to throw SenderError
 // - or it's truly unexpected and should surface as an uncaught Error

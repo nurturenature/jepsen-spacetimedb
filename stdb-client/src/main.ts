@@ -88,9 +88,9 @@ async function main(): Promise<void> {
             response = JSON.stringify({ type: 'ok', value: ledger });
             break;
 
-          case "POST" + "/ledger/read/view":
-            const view = await conn.views.ledgerView();
-            response = JSON.stringify({ type: 'ok', value: view });
+          case "POST" + "/ledger/read/subscription":
+            const subscribed = [...conn.db.ledger.iter()];
+            response = JSON.stringify({ type: 'ok', value: subscribed });
             break;
 
           case "POST" + "/ledger/setup":

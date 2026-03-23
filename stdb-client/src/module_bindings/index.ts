@@ -53,7 +53,6 @@ import * as RegistersTxnProcedure from "./registers_txn_procedure";
 
 // Import all table schema definitions
 import LedgerRow from "./ledger_table";
-import LedgerViewRow from "./ledger_view_table";
 import RegistersRow from "./registers_table";
 
 /** Type-only namespace exports for generated type groups. */
@@ -82,13 +81,6 @@ const tablesSchema = __schema({
       { name: 'registers_k_key', constraint: 'unique', columns: ['k'] },
     ],
   }, RegistersRow),
-  ledgerView: __table({
-    name: 'ledgerView',
-    indexes: [
-    ],
-    constraints: [
-    ],
-  }, LedgerViewRow),
 });
 
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */

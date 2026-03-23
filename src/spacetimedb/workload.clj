@@ -34,7 +34,7 @@
    (ledger-procedure opts)
    {:spacetimedb {:table         "ledger"
                   :dispatch-by-f {:transfer ["procedure"]
-                                  :read     ["procedure" "view"]}}}))
+                                  :read     ["procedure" "subscription"]}}}))
 
 (defn wr-register-procedure
   "A SpacetimeDB workload where all reads/writes to an Integer/Integer key/value register
