@@ -99,20 +99,21 @@
   (atom false))
 
 ; (.SpacetimeDBClient conn)
-; conn = {:table     SpacetimeDB table name, e.g. registers
-;         :technique SpacetimeDB technique for writes/reads, e.g. procedure}
+; conn = {:spacetimedb {:table         \"...\"
+;                       :dispatch-by-f {f \"technique\"}}}
 (defrecord SpacetimeDBClient [conn]
   client/Client
   (open!
     [this {:keys [client-timeout spacetimedb] :as _test} node]
-    (assert (every? spacetimedb #{:table :technique})
-            "SpacetimeDBClients expect a test containing {:spacetimedb {:table \"\" :technique \"\"}}")
+    (assert (every? spacetimedb #{:table :dispatch-by-f})
+            "SpacetimeDBClients expect a test containing
+               {:spacetimedb {:table \"...\" :dispatch-by-f {f \"technique\"}}}")
     (assoc this
-           :node      node
-           :uri       (client-node/client-uri node)
-           :timeout   (* client-timeout 1000)
-           :table     (:table     spacetimedb)
-           :technique (:technique spacetimedb)))
+           :node          node
+           :uri           (client-node/client-uri node)
+           :timeout       (* client-timeout 1000)
+           :table         (:table         spacetimedb)
+           :dispatch-by-f (:dispatch-by-f spacetimedb)))
 
   (setup!
     [{:keys [timeout uri] :as _this} {:keys [accounts total-amount] :as _test}]
@@ -129,9 +130,11 @@
         (swap! spacetimedb-setup? (constantly true)))))
 
   (invoke!
-    [{:keys [node table technique timeout uri] :as _this} _test {:keys [f] :as op}]
+    [{:keys [dispatch-by-f node table timeout uri] :as _this} _test {:keys [f] :as op}]
     (let [op  (assoc op :node node)
-          uri (str uri "/" table "/" (name f) "/" technique)
+          uri (str uri "/" table "/" (name f) "/" (->> f
+                                                       (get dispatch-by-f)
+                                                       rand-nth))
           {:keys [preprocess postprocess]} (get invoke-dispatch [table f])]
       (invoke op uri timeout preprocess postprocess)))
 

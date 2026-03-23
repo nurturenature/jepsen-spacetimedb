@@ -20,7 +20,21 @@
    {:db     (role/roles-based-db opts)
     :client (role/restricted-client)
     :roles  (role/roles-map opts)
-    :spacetimedb {:table "ledger" :technique "procedure"}}))
+    :spacetimedb {:table "ledger" :dispatch-by-f {:transfer ["procedure"]
+                                                  :read     ["procedure"]}}}))
+
+(defn ledger-mixed
+  "A SpacetimeDB workload for an i32/i32 account/balance ledger
+   - writes happen in a transaction in a Procedure
+   - reads randomly happen in a transaction in a Procedure or a View"
+  [{:keys [accounts max-transfer negative-balances? total total-amount] :as opts}]
+  (assert (and accounts max-transfer (not negative-balances?) total total-amount)
+          (str "opts must have :accounts :max-transfer :negative-balances? :total :total-amount, opts: " opts))
+  (merge
+   (ledger-mixed opts)
+   {:spacetimedb {:table         "ledger"
+                  :dispatch-by-f {:transfer ["procedure"]
+                                  :read     ["procedure" "view"]}}}))
 
 (defn wr-register-procedure
   "A SpacetimeDB workload where all reads/writes to an Integer/Integer key/value register
@@ -31,5 +45,6 @@
    {:db     (role/roles-based-db opts)
     :client (role/restricted-client)
     :roles  (role/roles-map opts)
-    :spacetimedb {:table "registers" :technique "procedure"}}))
+    :spacetimedb {:table         "registers"
+                  :dispatch-by-f {:txn ["procedure"]}}}))
 

@@ -88,6 +88,11 @@ async function main(): Promise<void> {
             response = JSON.stringify({ type: 'ok', value: ledger });
             break;
 
+          case "POST" + "/ledger/read/view":
+            const view = await conn.procedures.ledgerView();
+            response = JSON.stringify({ type: 'ok', value: view });
+            break;
+
           case "POST" + "/ledger/setup":
             const setup: SETUP = JSON.parse(body) as SETUP;
             await conn.reducers.setupLedger(setup);
