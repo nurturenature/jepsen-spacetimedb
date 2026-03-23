@@ -31,7 +31,7 @@
   (assert (and accounts max-transfer (not negative-balances?) total total-amount)
           (str "opts must have :accounts :max-transfer :negative-balances? :total :total-amount, opts: " opts))
   (merge
-   (ledger-mixed opts)
+   (ledger-procedure opts)
    {:spacetimedb {:table         "ledger"
                   :dispatch-by-f {:transfer ["procedure"]
                                   :read     ["procedure" "view"]}}}))

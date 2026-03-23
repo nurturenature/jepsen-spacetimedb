@@ -19,7 +19,8 @@
 (def workloads
   "A map of workload names to functions that take CLI options and return
   workload maps."
-  {:ledger-procedure      workload/ledger-procedure
+  {:ledger-mixed          workload/ledger-mixed
+   :ledger-procedure      workload/ledger-procedure
    :wr-register-procedure workload/wr-register-procedure
    :none                  (fn [_] tests/noop-test)})
 

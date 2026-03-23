@@ -31,7 +31,7 @@
                                   :read     (->> value ; [{:account integer :balance integer}...]
                                                  (map (fn [{:keys [account balance] :as _entry}]
                                                         [account balance]))
-                                                 (into {}))))))]
+                                                 (into (sorted-map)))))))]
     op))
 
 (defn invoke
