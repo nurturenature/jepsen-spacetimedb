@@ -33,7 +33,7 @@
   (merge
    (ledger-procedure opts)
    {:spacetimedb {:table         "ledger"
-                  :dispatch-by-f {:transfer ["procedure"]
+                  :dispatch-by-f {:transfer ["procedure" "reducer"]
                                   :read     ["procedure" "subscription"]}}}))
 
 (defn wr-register-procedure

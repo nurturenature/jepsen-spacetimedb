@@ -105,6 +105,12 @@ async function main(): Promise<void> {
             response = JSON.stringify({ type: 'ok', value: transfer });
             break;
 
+          case "POST" + "/ledger/transfer/reducer":
+            const transferReducer: TRANSFER = JSON.parse(body) as TRANSFER;
+            await conn.reducers.transferLedger(transferReducer);
+            response = JSON.stringify({ type: 'ok', value: transferReducer });
+            break;
+
           default:
             const message = `Unknown method + url: ${method} + ${url}.`;
             console.error(`[endpoint] ${message}`);

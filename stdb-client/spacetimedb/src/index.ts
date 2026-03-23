@@ -185,6 +185,32 @@ export const deleteLedger = spacetimedb.reducer(
   }
 );
 
+export const transferLedger = spacetimedb.reducer(
+  { from: ACCOUNT, to: ACCOUNT, amount: AMOUNT },
+  (ctx, { from, to, amount }) => {
+    console.log(`[stdb][transferLedger]: "${{ from: from, to: to, amount: amount }}"`);
+
+    const from_row = ctx.db.ledger.account.find(from);
+    const to_row = ctx.db.ledger.account.find(to);
+    if (!from_row || !to_row) {
+      throw new SenderError(`Could not find both from and to accounts for transfer: ${{ from: from, to: to, amount: amount }}`);
+    }
+
+    // don't allow negative balances
+    // do transfer->to first and then test transfer<-from for negative
+    // throwing SenderError will test aborting the transaction
+    to_row.balance += amount;
+    updateLedger(ctx, to_row);
+
+    from_row.balance -= amount;
+    if (from_row.balance < 0) {
+      throw new SenderError(`transfer would cause a negative balance: ${{ account: from_row.account, balance: from_row.balance }}`);
+    }
+    updateLedger(ctx, from_row);
+
+    return;
+  });
+
 export const updateLedger = spacetimedb.reducer(
   { account: t.i32(), balance: t.i32() },
   (ctx, { account, balance }) => {
