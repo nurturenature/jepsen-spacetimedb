@@ -79,7 +79,7 @@ export const txn = spacetimedb.procedure(
               list = { key: k, list: [v!] };
               ctx.db.lists.insert(list);
             } else {
-              list.list.concat(v!);
+              list.list.push(v!);
               ctx.db.lists.key.update(list);
             }
             res.push({ f: 'append', k: k, v_read: undefined, v_append: v! });
