@@ -55,6 +55,11 @@ export const txn = spacetimedb.procedure(
   (ctx, { txn }) => {
     console.log(`[txn] txn: "${txn}"`);
 
+    // TODO: remove debugging
+    for (const mop of txn) {
+      console.log(`[txn] txn: mop: f: ${mop.f}, k: ${mop.k}, v: ${mop.v}`);
+    }
+
     const res: { f: string, k: number, v_append: number | undefined, v_read: number[] | undefined }[] = [];
 
     ctx.withTx(ctx => {
