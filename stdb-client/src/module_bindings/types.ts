@@ -10,21 +10,16 @@ import {
   type Infer as __Infer,
 } from "spacetimedb";
 
-export const Entry = __t.object("Entry", {
-  account: __t.i32(),
-  balance: __t.i32(),
+export const Lists = __t.object("Lists", {
+  key: __t.i32(),
+  list: __t.option(__t.string()),
 });
-export type Entry = __Infer<typeof Entry>;
+export type Lists = __Infer<typeof Lists>;
 
-export const Ledger = __t.object("Ledger", {
-  account: __t.i32(),
-  balance: __t.i32(),
-});
-export type Ledger = __Infer<typeof Ledger>;
-
-export const Registers = __t.object("Registers", {
+export const Mop = __t.object("Mop", {
+  f: __t.string(),
   k: __t.i32(),
-  v: __t.i32(),
+  v: __t.option(__t.option(__t.string())),
 });
-export type Registers = __Infer<typeof Registers>;
+export type Mop = __Infer<typeof Mop>;
 

@@ -19,14 +19,12 @@
 (def workloads
   "A map of workload names to functions that take CLI options and return
   workload maps."
-  {:ledger-mixed          workload/ledger-mixed
-   :ledger-procedure      workload/ledger-procedure
-   :wr-register-procedure workload/wr-register-procedure
-   :none                  (fn [_] tests/noop-test)})
+  {:list-append workload/list-append
+   :none        (fn [_] tests/noop-test)})
 
 (def all-workloads
   "Default collection of workloads for test-all."
-  [:ledger-procedure :wr-register-procedure])
+  [:list-append])
 
 (def nemeses
   "A collection of valid nemeses."
@@ -63,13 +61,6 @@
   [spec]
   (->> (str/split spec #",")
        (mapv keyword)))
-
-(defn parse-longs-spec
-  "Takes a comma-separated string of longs and returns a collection of the longs."
-  [spec]
-  (->> (str/split spec #",")
-       (map parse-long)
-       (into #{})))
 
 (defn test-name
   "Given opts, returns a meaningful test name."
@@ -134,12 +125,7 @@
 
 (def cli-opts
   "Command line options"
-  [[nil "--accounts ACCOUNTS" "(ledger) A collection of account identifiers.."
-    :default  (into [] (range 1 11))
-    :parse-fn parse-longs-spec
-    :validate [(partial every? pos?) "Must be a collection of positive integers."]]
-
-   [nil "--anomalies ANOMALIES" "A list of additional anomalies to check for."
+  [[nil "--anomalies ANOMALIES" "A list of additional anomalies to check for."
     :default  []
     :parse-fn parse-keywords-spec
     :validate [(partial every? all-anomalies) (str "Must be a collection of anomalies: " all-anomalies ".")]]
@@ -154,28 +140,23 @@
     :parse-fn parse-keywords-spec
     :validate [(partial every? all-models) (str "Must be a collection of consistency models: " all-models ".")]]
 
-   [nil "--key-dist DISTRIBUTION" "Probability distribution for keys being selected for a given operation."
-    :default  :exponential
-    :parse-fn keyword
-    :validate [#{:exponential :uniform} "Must be one of exponential or uniform."]]
+   [nil "--directory DIRECTORY" "Directory to store Elle's analysis."
+    :default  "elle"
+    :parse-fn str
+    :validate [string? "Must be a String."]]
 
    [nil "--key-count NUMBER" "Number of distinct keys at any point."
     :default  10
     :parse-fn parse-long
     :validate [pos? "Must be a positive number."]]
 
+   [nil "--key-dist DISTRIBUTION" "Probability distribution for keys being selected for a given operation."
+    :default  :exponential
+    :parse-fn keyword
+    :validate [#{:exponential :uniform} "Must be one of exponential or uniform."]]
+
    [nil "--keys-txn NUM" "The number of keys to act on in a transactions."
     :default  4
-    :parse-fn parse-long
-    :validate [pos? "Must be a positive integer."]]
-
-   [nil "--linearizable-keys? BOOLEAN" "Assume that each key is independently linearizable."
-    :default  true
-    :parse-fn parse-boolean
-    :validate [boolean? "Must be a Boolean."]]
-
-   [nil "--max-transfer NUM" "(ledger) The largest transfer we'll try to execute."
-    :default  10
     :parse-fn parse-long
     :validate [pos? "Must be a positive integer."]]
 
@@ -184,15 +165,15 @@
     :parse-fn parse-long
     :validate [pos? "Must be a positive integer."]]
 
+   [nil "--max-writes-per-key NUM" "Maximum number of writes to an individual key."
+    :default  256
+    :parse-fn parse-long
+    :validate [pos? "Must be a positive integer."]]
+
    [nil "--min-txn-length NUM" "Minimum number of operations per txn."
     :default  2
     :parse-fn parse-long
     :validate [pos? "Must be a positive integer."]]
-
-   [nil "--negative-balances? BOOLEAN" "(ledger) Is it ok for account balances to be negative?."
-    :default  false
-    :parse-fn parse-boolean
-    :validate [boolean? "Must be a Boolean."]]
 
    [nil "--nemesis FAULTS" "A comma-separated list of nemesis faults to enable"
     :parse-fn parse-nemesis-spec
@@ -212,30 +193,10 @@
     :parse-fn parse-long
     :validate [pos? "Must be a positive number."]]
 
-   [nil "--sequential-keys? BOOLEAN" "Assume that each key is independently sequentially consistent."
-    :default  true
-    :parse-fn parse-boolean
-    :validate [boolean? "Must be a Boolean."]]
-
    [nil "--spacetimedb-node NODE" "Node to install SpacetimeDB on."
     :default  "spacetimedb"
     :parse-fn str
     :validate [string? "Must be a String."]]
-
-   [nil "--total-amount NUM" "(ledger) Total amount to allocate."
-    :default 100
-    :parse-fn parse-long
-    :validate [pos? "Must be a positive integer."]]
-
-   [nil "--total NUM" "(ledger) Total each read of all accounts."
-    :default 100
-    :parse-fn parse-long
-    :validate [pos? "Must be a positive integer."]]
-
-   [nil "--wfr-keys? BOOLEAN" "Assume that within each transaction, writes follow reads."
-    :default  true
-    :parse-fn parse-boolean
-    :validate [boolean? "Must be a Boolean."]]
 
    ["-w" "--workload NAME" "What workload should we run?"
     :parse-fn keyword

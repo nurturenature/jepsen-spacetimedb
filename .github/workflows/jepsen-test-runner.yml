@@ -7,7 +7,7 @@ on:
         description: Workloads (as JSON)
         type: string
         required: true
-        default: "[ 'wr-register-procedure' ]"
+        default: "[ 'list-append' ]"
       nemeses:
         description: "Nemeses (as JSON)"
         type: string
@@ -45,7 +45,7 @@ on:
         description: "Workloads (as JSON)"
         type: string
         required: false
-        default: "[ 'wr-register-procedure' ]"
+        default: "[ 'list-append' ]"
       nemeses:
         description: "Nemeses (as JSON)"
         type: string

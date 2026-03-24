@@ -14,6 +14,20 @@ import http from 'http';
 const HOST = process.env.SPACETIMEDB_HOST ?? 'ws://spacetimedb:3000';
 const DB_NAME = process.env.SPACETIMEDB_DB_NAME ?? 'test-db';
 
+// TODO: put types in a shared type location for SpacetimeDB server
+
+// append only keyed list
+type KEY = number;
+type LIST = string | null;
+type LISTS = LIST[];
+
+// txn
+type F = string;
+type K = KEY;
+type V = LIST | null;
+type MOP = { f: F, k: K, v: V };
+type TXN = MOP[];
+
 // Main entry point
 async function main(): Promise<void> {
   console.log(`Connecting to SpacetimeDB...`);
@@ -37,30 +51,9 @@ async function main(): Promise<void> {
   const port = process.env.CLIENT_PORT || '3000';
   const portNumber = Number.parseInt(port);
 
-  // TODO: put types in a shared type location for SpacetimeDB server
-  // wr-register
-  type F = 'r' | 'w';
-  type K = number;
-  type V = number | null;
-  type MOP = [F, K, V,];
-  type TXN = MOP[];
-
-  // ledger
-  type ACCOUNT = number;
-  type BALANCE = number;
-  type ENTRY = { account: ACCOUNT, balance: BALANCE };
-  type LEDGER = ENTRY[];
-  type FROM = ACCOUNT;
-  type TO = ACCOUNT;
-  type AMOUNT = number;
-  type TRANSFER = { from: FROM, to: TO, amount: AMOUNT };
-  // /ledger/setup
-  type ACCOUNTS = ACCOUNT[];
-  type SETUP = { accounts: ACCOUNTS, balance: BALANCE };
-
   // REST API for Jepsen transactions
   // /table/f/technique
-  // e.g. /registers/txn/procedure 
+  // e.g. /lists/txn/procedure 
   const endpoint = http.createServer(async (req, res) => {
     const { method, url } = req;
     console.log(`[endpoint] request: ${method} ${url}`);
@@ -77,38 +70,10 @@ async function main(): Promise<void> {
 
         let response: string;
         switch (method! + url) {
-          case "POST" + "/registers/txn/procedure":
-            const result = await conn.procedures.registersTxn({ value: body });
-            const txn: TXN = JSON.parse(result) as TXN;
-            response = JSON.stringify({ type: 'ok', value: txn });
-            break;
-
-          case "POST" + "/ledger/read/procedure":
-            const ledger = await conn.procedures.ledgerRead({});
-            response = JSON.stringify({ type: 'ok', value: ledger });
-            break;
-
-          case "POST" + "/ledger/read/subscription":
-            const subscribed = [...conn.db.ledger.iter()];
-            response = JSON.stringify({ type: 'ok', value: subscribed });
-            break;
-
-          case "POST" + "/ledger/setup":
-            const setup: SETUP = JSON.parse(body) as SETUP;
-            await conn.reducers.setupLedger(setup);
-            response = JSON.stringify({ type: 'ok' });
-            break;
-
-          case "POST" + "/ledger/transfer/procedure":
-            const transfer: TRANSFER = JSON.parse(body) as TRANSFER;
-            await conn.procedures.ledgerTransfer(transfer);
-            response = JSON.stringify({ type: 'ok', value: transfer });
-            break;
-
-          case "POST" + "/ledger/transfer/reducer":
-            const transferReducer: TRANSFER = JSON.parse(body) as TRANSFER;
-            await conn.reducers.transferLedger(transferReducer);
-            response = JSON.stringify({ type: 'ok', value: transferReducer });
+          case "POST" + "/lists/txn/procedure":
+            const txn: TXN = JSON.parse(body) as TXN;
+            const result = await conn.procedures.list_append({ txn: txn });
+            response = JSON.stringify({ type: 'ok', value: result });
             break;
 
           default:
@@ -154,24 +119,14 @@ function onConnect(
   conn
     .subscriptionBuilder()
     .onApplied(ctx => {
-      // log current registers in client cache
-      const registers = [...ctx.db.registers.iter()];
-      console.log(`\nCurrent registers (${registers.length}):`);
-      if (registers.length === 0) {
+      // log current lists in client cache
+      const lists = [...ctx.db.lists.iter()];
+      console.log(`\nCurrent lists (${lists.length}):`);
+      if (lists.length === 0) {
         console.log('\t', '(none yet)');
       } else {
-        for (const register of registers) {
-          console.log('\t', { k: register.k, v: register.v });
-        }
-      }
-
-      const ledger = [...ctx.db.ledger.iter()];
-      console.log(`\nCurrent ledger (${ledger.length}):`);
-      if (ledger.length === 0) {
-        console.log('\t', '(none yet)');
-      } else {
-        for (const entry of ledger) {
-          console.log('\t', entry);
+        for (const list of lists) {
+          console.log('\t', { key: list.key, list: list.list });
         }
       }
 
@@ -183,16 +138,16 @@ function onConnect(
     .subscribeToAllTables();
 
   // Register callbacks for table changes
-  conn.db.registers.onInsert((_ctx: EventContext, register) => {
-    console.log('[onInsert] ', register);
+  conn.db.lists.onInsert((_ctx: EventContext, list) => {
+    console.log('[onInsert] ', list);
   });
 
-  conn.db.registers.onDelete((_ctx: EventContext, register) => {
-    console.log('[onDelete] ', register);
+  conn.db.lists.onDelete((_ctx: EventContext, list) => {
+    console.log('[onDelete] ', list);
   });
 
-  conn.db.registers.onUpdate((_ctx: EventContext, register) => {
-    console.log('[onUpdate] ', register);
+  conn.db.lists.onUpdate((_ctx: EventContext, list) => {
+    console.log('[onUpdate] ', list);
   });
 }
 

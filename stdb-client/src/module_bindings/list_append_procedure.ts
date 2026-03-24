@@ -10,7 +10,13 @@ import {
   type Infer as __Infer,
 } from "spacetimedb";
 
-export default {
-  k: __t.i32(),
-  v: __t.i32(),
+import {
+  Mop,
+} from "./types";
+
+export const params = {
+  get txn() {
+    return __t.array(Mop);
+  },
 };
+export const returnType = __t.array(Mop)

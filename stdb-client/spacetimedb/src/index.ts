@@ -2,46 +2,30 @@ import { schema, SenderError, t, table, } from 'spacetimedb/server';
 
 // TODO: put in a shared type location for SpacetimeDB client
 
-// wr-register
-type F = 'r' | 'w';
-type K = number;
-type V = number | null;
-type MOP = [F, K, V,];
-type TXN = MOP[];
+// append only keyed list
+const KEY = t.i32();
+const LIST = t.option(t.string());
+const LISTS = t.array(LIST);
 
-// ledger
-const ACCOUNT = t.i32();
-const BALANCE = t.i32();
-const ENTRY = t.object('Entry', { account: ACCOUNT, balance: BALANCE });
-const LEDGER = t.array(ENTRY);
-const FROM = ACCOUNT;
-const TO = ACCOUNT;
-const AMOUNT = t.i32();
-const TRANSFER = t.object('Transfer', { from: FROM, to: TO, amount: AMOUNT });
+// txn
+const F = t.string();
+const K = KEY;
+const V = t.option(LIST);
+const MOP = t.object('MOP', { f: F, k: K, v: V });
+const TXN = t.array(MOP);
 
-const registers = table(
+const lists = table(
   {
-    name: 'registers',
+    name: 'lists',
     public: true
   },
   {
-    k: t.i32().primaryKey(),
-    v: t.i32(),
+    key: KEY.primaryKey(),
+    list: LIST,
   }
 );
 
-const ledger = table(
-  {
-    name: 'ledger',
-    public: true
-  },
-  {
-    account: ACCOUNT.primaryKey(),
-    balance: BALANCE,
-  }
-);
-
-const spacetimedb = schema({ registers, ledger });
+const spacetimedb = schema({ lists });
 export default spacetimedb;
 
 export const init = spacetimedb.init(_ctx => {
@@ -56,261 +40,41 @@ export const onDisconnect = spacetimedb.clientDisconnected(_ctx => {
   // Called every time a client disconnects
 });
 
-// following SpacetimeDB docs for accessing tables
-// https://spacetimedb.com/docs/functions/reducers/#accessing-tables
+// execute a transaction for a keyed append only list
+export const list_append = spacetimedb.procedure(
+  { txn: TXN },
+  TXN,
+  (ctx, { txn }) => {
+    console.log(`[list_append] txn: "${txn}"`);
 
-// wr-register
-
-export const insertRegister = spacetimedb.reducer(
-  { k: t.i32(), v: t.i32() },
-  (ctx, { k, v }) => {
-    try {
-      ctx.db.registers.insert({ k, v });
-    } catch (error) {
-      throw new SenderError(`Error inserting ${{ k, v }}: ${error}`);
-    }
-  }
-);
-
-export const deleteRegister = spacetimedb.reducer(
-  { k: t.i32() },
-  (ctx, { k }) => {
-    try {
-      ctx.db.registers.k.delete(k);
-    } catch (error) {
-      throw new SenderError(`Error deleting ${k}: ${error}`);
-    }
-  }
-);
-
-export const updateRegister = spacetimedb.reducer(
-  { k: t.i32(), v: t.i32() },
-  (ctx, { k, v }) => {
-    const register = ctx.db.registers.k.find(k);
-    if (!register) {
-      throw new SenderError(`Unable to update ${{ k, v }}, primary key ${k} not in the table.`);
-    }
-    register.v = v;
-    try {
-      ctx.db.registers.k.update(register);
-    } catch (error) {
-      throw new SenderError(`Error updating ${{ k, v }}: ${error}`);
-    }
-  }
-);
-
-export const upsertRegister = spacetimedb.reducer(
-  { k: t.i32(), v: t.i32() },
-  (ctx, { k, v }) => {
-    try {
-      const register = ctx.db.registers.k.find(k);
-      if (register) {
-        register.v = v;
-        ctx.db.registers.k.update(register);
-      } {
-        ctx.db.registers.insert({ k: k, v: v });
-      }
-    } catch (error) {
-      throw new SenderError(`Error upserting ${{ k, v }}: ${error}`);
-    }
-  }
-);
-
-export const listRegisters = spacetimedb.reducer(ctx => {
-  console.info('listRegisters:');
-  for (const register of [...ctx.db.registers.iter()]) {
-    console.info('\t', { k: register.k, v: register.v });
-  }
-});
-
-// no try/catch, rely on:
-// - called reducer to throw SenderError
-// - or it's truly unexpected and should surface as an uncaught Error
-export const registersTxn = spacetimedb.procedure(
-  { value: t.string() },
-  t.string(),
-  (ctx, { value }) => {
-    console.log(`[stdb] txn: value: "${value}"`);
-
-    const txn: TXN = JSON.parse(value) as TXN;
-    const res: TXN = [];
-
-    console.log(`[stdb] txn: txn: ${txn}`);
+    const res: typeof txn = [];
 
     ctx.withTx(ctx => {
-      for (const [f, k, v] of txn) {
+      for (const { f, k, v } of txn) {
         switch (f) {
           case 'r':
-            const read = ctx.db.registers.k.find(k);
+            const read = ctx.db.lists.key.find(k);
             if (read == null) {
-              res.push(['r', k, null]);
+              res.push({ f: 'r', k: k, v: undefined });
             } else {
-              res.push(['r', k, read.v]);
+              res.push({ f: 'r', k: k, v: read.list });
             }
             break;
-          case 'w':
-            upsertRegister(ctx, { k: k, v: v! });
-            res.push([f, k, v])
+          case 'append':
+            let list = ctx.db.lists.key.find(k);
+            if (list == null) {
+              list = { key: k, list: v };
+              ctx.db.lists.insert(list);
+            } else {
+              list.list += ' ' + v;
+              ctx.db.lists.key.update(list);
+            }
+            res.push({ f: 'append', k: k, v: list.list });
             break;
         }
       }
     });
 
-    const result = JSON.stringify(res);
-    console.log(`[stdb] result: ${result}`);
-    return result;
-  });
-
-// ledger
-
-export const insertLedger = spacetimedb.reducer(
-  { account: t.i32(), balance: t.i32() },
-  (ctx, { account, balance }) => {
-    try {
-      ctx.db.ledger.insert({ account, balance });
-    } catch (error) {
-      throw new SenderError(`Error inserting ${{ account, balance }}: ${error}`);
-    }
-  }
-);
-
-export const deleteLedger = spacetimedb.reducer(
-  { account: t.i32() },
-  (ctx, { account }) => {
-    try {
-      ctx.db.ledger.account.delete(account);
-    } catch (error) {
-      throw new SenderError(`Error deleting ${account}: ${error}`);
-    }
-  }
-);
-
-export const transferLedger = spacetimedb.reducer(
-  { from: ACCOUNT, to: ACCOUNT, amount: AMOUNT },
-  (ctx, { from, to, amount }) => {
-    console.log(`[stdb][transferLedger]: "${{ from: from, to: to, amount: amount }}"`);
-
-    const from_row = ctx.db.ledger.account.find(from);
-    const to_row = ctx.db.ledger.account.find(to);
-    if (!from_row || !to_row) {
-      throw new SenderError(`Could not find both from and to accounts for transfer: ${{ from: from, to: to, amount: amount }}`);
-    }
-
-    // don't allow negative balances
-    // do transfer->to first and then test transfer<-from for negative
-    // throwing SenderError will test aborting the transaction
-    to_row.balance += amount;
-    updateLedger(ctx, to_row);
-
-    from_row.balance -= amount;
-    if (from_row.balance < 0) {
-      throw new SenderError(`transfer would cause a negative balance: ${{ account: from_row.account, balance: from_row.balance }}`);
-    }
-    updateLedger(ctx, from_row);
-
-    return;
-  });
-
-export const updateLedger = spacetimedb.reducer(
-  { account: t.i32(), balance: t.i32() },
-  (ctx, { account, balance }) => {
-    const entry = ctx.db.ledger.account.find(account);
-    if (!entry) {
-      throw new SenderError(`Unable to update ${{ account, balance }}, primary key ${account} not in the table.`);
-    }
-    entry.balance = balance;
-    try {
-      ctx.db.ledger.account.update(entry);
-    } catch (error) {
-      throw new SenderError(`Error updating ${{ account, balance }}: ${error}`);
-    }
-  }
-);
-
-export const upsertLedger = spacetimedb.reducer(
-  { account: t.i32(), balance: t.i32() },
-  (ctx, { account, balance }) => {
-    try {
-      const entry = ctx.db.ledger.account.find(account);
-      if (entry) {
-        entry.balance = balance;
-        ctx.db.ledger.account.update(entry);
-      } {
-        ctx.db.ledger.insert({ account: account, balance: balance });
-      }
-    } catch (error) {
-      throw new SenderError(`Error upserting ${{ account, balance }}: ${error}`);
-    }
-  }
-);
-
-export const listLedger = spacetimedb.reducer(ctx => {
-  console.info('listLedger:');
-  for (const entry of [...ctx.db.ledger.iter()]) {
-    console.info('\t', { account: entry.account, balance: entry.balance });
-  }
-});
-
-export const setupLedger = spacetimedb.reducer(
-  { accounts: t.array(t.i32()), balance: t.i32() },
-  (ctx, { accounts, balance }) => {
-    console.log(`[stdb] ledgerSetup: { accounts: ${accounts}, balance: ${balance} }`);
-
-    // TODO: is there a better way?
-    for (const entry of [...ctx.db.ledger.iter()]) {
-      deleteLedger(ctx, { account: entry.account });
-    }
-
-    for (const account of accounts) {
-      upsertLedger(ctx, { account: account, balance: balance });
-    }
-
-    return;
-  });
-
-export const ledgerRead = spacetimedb.procedure(
-  {},
-  t.array(ENTRY),
-  (ctx, { }) => {
-    console.log('[stdb][ledgerRead] invoke');
-
-    let ledger: { account: number, balance: number }[] = [];
-    ctx.withTx(ctx => {
-      ledger = [...ctx.db.ledger.iter()];
-    });
-
-    console.log('[stdb][ledgerRead] returning ledger: ', ledger);
-    return ledger;
-  });
-
-// no try/catch, rely on:
-// - called reducer to throw SenderError
-// - or it's truly unexpected and should surface as an uncaught Error
-export const ledgerTransfer = spacetimedb.procedure(
-  { from: ACCOUNT, to: ACCOUNT, amount: AMOUNT },
-  t.unit(),
-  (ctx, { from, to, amount }) => {
-    console.log(`[stdb][ledgerTransfer]: "${{ from: from, to: to, amount: amount }}"`);
-
-    ctx.withTx(ctx => {
-      const from_row = ctx.db.ledger.account.find(from);
-      const to_row = ctx.db.ledger.account.find(to);
-      if (!from_row || !to_row) {
-        throw new SenderError(`Could not find both from and to accounts for transfer: ${{ from: from, to: to, amount: amount }}`);
-      }
-
-      // don't allow negative balances
-      // do transfer->to first and then test transfer<-from for negative
-      // throwing SenderError will test aborting the transaction
-      to_row.balance += amount;
-      updateLedger(ctx, to_row);
-
-      from_row.balance -= amount;
-      if (from_row.balance < 0) {
-        throw new SenderError(`transfer would cause a negative balance: ${from_row} < 0`);
-      }
-      updateLedger(ctx, from_row);
-    });
-
-    return {};
+    console.log(`[list_append] res: ${res}`);
+    return res;
   });

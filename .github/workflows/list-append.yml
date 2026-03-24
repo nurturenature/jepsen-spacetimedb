@@ -1,4 +1,4 @@
-name: wr-register-procedure
+name: list-append
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ on:
         description: Workloads (as JSON)
         type: string
         required: true
-        default: "[ 'wr-register-procedure' ]"
+        default: "[ 'list-append' ]"
       nemeses:
         description: "Nemeses (as JSON)"
         type: string
@@ -40,7 +40,7 @@ on:
         default: "{'repeat': [ '1' ], 'timeout-minutes': 10 }"
 
 jobs:
-  wr-register-procedure:
+  list-append:
     uses: nurturenature/jepsen-spacetimedb/.github/workflows/jepsen-test-runner.yml@main
     with:
       workloads: ${{ inputs.workloads}}

@@ -6,29 +6,5 @@
 import { type Infer as __Infer } from "spacetimedb";
 
 // Import all reducer arg schemas
-import DeleteLedgerReducer from "../delete_ledger_reducer";
-import DeleteRegisterReducer from "../delete_register_reducer";
-import InsertLedgerReducer from "../insert_ledger_reducer";
-import InsertRegisterReducer from "../insert_register_reducer";
-import ListLedgerReducer from "../list_ledger_reducer";
-import ListRegistersReducer from "../list_registers_reducer";
-import SetupLedgerReducer from "../setup_ledger_reducer";
-import TransferLedgerReducer from "../transfer_ledger_reducer";
-import UpdateLedgerReducer from "../update_ledger_reducer";
-import UpdateRegisterReducer from "../update_register_reducer";
-import UpsertLedgerReducer from "../upsert_ledger_reducer";
-import UpsertRegisterReducer from "../upsert_register_reducer";
 
-export type DeleteLedgerParams = __Infer<typeof DeleteLedgerReducer>;
-export type DeleteRegisterParams = __Infer<typeof DeleteRegisterReducer>;
-export type InsertLedgerParams = __Infer<typeof InsertLedgerReducer>;
-export type InsertRegisterParams = __Infer<typeof InsertRegisterReducer>;
-export type ListLedgerParams = __Infer<typeof ListLedgerReducer>;
-export type ListRegistersParams = __Infer<typeof ListRegistersReducer>;
-export type SetupLedgerParams = __Infer<typeof SetupLedgerReducer>;
-export type TransferLedgerParams = __Infer<typeof TransferLedgerReducer>;
-export type UpdateLedgerParams = __Infer<typeof UpdateLedgerReducer>;
-export type UpdateRegisterParams = __Infer<typeof UpdateRegisterReducer>;
-export type UpsertLedgerParams = __Infer<typeof UpsertLedgerReducer>;
-export type UpsertRegisterParams = __Infer<typeof UpsertRegisterReducer>;
 

@@ -10,9 +10,12 @@
 (defn op->json-txn
   "Given an op, encodes its `:value`, a transaction, as a json string."
   [{:keys [type f value] :as op}]
-  (assert (and (= type :invoke) (#{:txn :transfer :read} f))
+  (assert (and (= type :invoke) (#{:txn} f) value)
           (str "Invalid :type and/or :f and/or :value in op: " op))
-  (json/generate-string value))
+  (->> value
+       (mapv (fn [[f k v]]
+               {:f f :k k :v v}))
+       json/generate-string))
 
 (defn json-result->op
   "Given an f and a json string, decodes it into an op.
@@ -25,13 +28,8 @@
                (update :value (fn [value]
                                 (case f
                                   :txn      (->> value
-                                                 (mapv (fn [[f k v]]
-                                                         [(keyword f) k v])))
-                                  :transfer value
-                                  :read     (->> value ; [{:account integer :balance integer}...]
-                                                 (map (fn [{:keys [account balance] :as _entry}]
-                                                        [account balance]))
-                                                 (into (sorted-map)))))))]
+                                                 (mapv (fn [{:keys [f k v] :as _mop}]
+                                                         [(keyword f) k v])))))))]
     op))
 
 (defn invoke
@@ -87,16 +85,8 @@
 
 (def invoke-dispatch
   "Maps [table f] to {:preprocess fn :postprocess fn}"
-  {["registers" :txn]      {:preprocess  op->json-txn
-                            :postprocess (partial json-result->op :txn)}
-   ["ledger"    :transfer] {:preprocess  op->json-txn
-                            :postprocess (partial json-result->op :transfer)}
-   ["ledger"    :read]     {:preprocess  op->json-txn
-                            :postprocess (partial json-result->op :read)}})
-
-(def spacetimedb-setup?
-  "First client initializes db."
-  (atom false))
+  {["lists" :txn] {:preprocess  op->json-txn
+                   :postprocess (partial json-result->op :txn)}})
 
 ; (.SpacetimeDBClient conn)
 ; conn = {:spacetimedb {:table         \"...\"
@@ -116,18 +106,7 @@
            :dispatch-by-f (:dispatch-by-f spacetimedb)))
 
   (setup!
-    [{:keys [timeout uri] :as _this} {:keys [accounts total-amount] :as _test}]
-    ; first client sets up db
-    (locking spacetimedb-setup?
-      (when-not @spacetimedb-setup?
-        (http/post (str uri "/ledger/setup")
-                   {:body               (json/encode {:accounts accounts
-                                                      :balance  (quot total-amount (count accounts))})
-                    :content-type       "application/json"
-                    :socket-timeout     timeout
-                    :connection-timeout timeout
-                    :accept             "application/json"})
-        (swap! spacetimedb-setup? (constantly true)))))
+    [_this _test])
 
   (invoke!
     [{:keys [dispatch-by-f node table timeout uri] :as _this} _test {:keys [f] :as op}]
