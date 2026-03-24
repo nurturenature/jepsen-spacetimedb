@@ -11,12 +11,13 @@ import {
 } from "spacetimedb";
 
 import {
-  Mop,
+  ReqMop,
+  ResMop,
 } from "./types";
 
 export const params = {
   get txn() {
-    return __t.array(Mop);
+    return __t.array(ReqMop);
   },
 };
-export const returnType = __t.array(Mop)
+export const returnType = __t.array(ResMop)

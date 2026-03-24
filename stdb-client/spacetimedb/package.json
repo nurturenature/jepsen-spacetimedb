@@ -10,9 +10,9 @@
   "author": "",
   "license": "Apache-2.0",
   "dependencies": {
-    "spacetimedb": "^2.1.0"
+    "spacetimedb": "^2.0.4"
   },
   "devDependencies": {
-    "typescript": "~6.0.2"
+    "typescript": "~5.9.3"
   }
 }

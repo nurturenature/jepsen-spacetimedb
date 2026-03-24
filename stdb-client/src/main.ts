@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { Identity } from 'spacetimedb';
+import { SenderError } from 'spacetimedb/server';
 import {
   DbConnection,
   ErrorContext,
@@ -18,13 +19,11 @@ const DB_NAME = process.env.SPACETIMEDB_DB_NAME ?? 'test-db';
 
 // append only keyed list
 type KEY = number;
-type LIST = string | null;
-type LISTS = LIST[];
 
-// txn
+// txn request
 type F = string;
 type K = KEY;
-type V = LIST | null;
+type V = number | null;
 type MOP = { f: F, k: K, v: V };
 type TXN = MOP[];
 
@@ -72,7 +71,21 @@ async function main(): Promise<void> {
         switch (method! + url) {
           case "POST" + "/lists/txn/procedure":
             const txn: TXN = JSON.parse(body) as TXN;
-            const result = await conn.procedures.txn({ txn: txn });
+            const procedure: { f: string, k: number, v_append: number | undefined, v_read: number[] | undefined }[] =
+              await conn.procedures.txn({ txn: txn });
+            const result = procedure.map(({ f, k, v_append, v_read }) => {
+              switch (f) {
+                case "r":
+                  return [f, k, v_read];
+
+                case "append":
+                  return [f, k, v_append];
+
+                default:
+                  throw new SenderError(`Invalid f in txn result: ${result}`);
+              }
+            });
+
             response = JSON.stringify({ type: 'ok', value: result });
             break;
 

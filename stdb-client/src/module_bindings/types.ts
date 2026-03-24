@@ -12,14 +12,22 @@ import {
 
 export const Lists = __t.object("Lists", {
   key: __t.i32(),
-  list: __t.option(__t.string()),
+  list: __t.array(__t.i32()),
 });
 export type Lists = __Infer<typeof Lists>;
 
-export const Mop = __t.object("Mop", {
+export const ReqMop = __t.object("ReqMop", {
   f: __t.string(),
   k: __t.i32(),
-  v: __t.option(__t.option(__t.string())),
+  v: __t.option(__t.i32()),
 });
-export type Mop = __Infer<typeof Mop>;
+export type ReqMop = __Infer<typeof ReqMop>;
+
+export const ResMop = __t.object("ResMop", {
+  f: __t.string(),
+  k: __t.i32(),
+  vAppend: __t.option(__t.i32()),
+  vRead: __t.option(__t.array(__t.i32())),
+});
+export type ResMop = __Infer<typeof ResMop>;
 

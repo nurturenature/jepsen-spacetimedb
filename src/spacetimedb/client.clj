@@ -27,9 +27,9 @@
                (update :type  keyword)
                (update :value (fn [value]
                                 (case f
-                                  :txn      (->> value
-                                                 (mapv (fn [{:keys [f k v] :as _mop}]
-                                                         [(keyword f) k v])))))))]
+                                  :txn (->> value
+                                            (mapv (fn [{:keys [f k v] :as _mop}]
+                                                    [(keyword f) k v])))))))]
     op))
 
 (defn invoke

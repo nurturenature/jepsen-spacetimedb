@@ -12,5 +12,5 @@ import {
 
 export default __t.row({
   key: __t.i32().primaryKey(),
-  list: __t.option(__t.string()),
+  list: __t.array(__t.i32()),
 });

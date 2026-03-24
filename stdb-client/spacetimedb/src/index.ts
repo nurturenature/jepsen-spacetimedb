@@ -4,15 +4,23 @@ import { schema, SenderError, t, table, } from 'spacetimedb/server';
 
 // append only keyed list
 const KEY = t.i32();
-const LIST = t.option(t.string());
+const ELEMENT = t.i32();
+const LIST = t.array(t.i32());
 const LISTS = t.array(LIST);
 
-// txn
+// txn [{ f: append|r k: key v: element|list }...]
+// MOP
 const F = t.string();
 const K = KEY;
-const V = t.option(LIST);
-const MOP = t.object('MOP', { f: F, k: K, v: V });
-const TXN = t.array(MOP);
+// request MOP
+const REQ_V = t.option(ELEMENT);
+const REQ_MOP = t.object('REQ_MOP', { f: F, k: K, v: REQ_V });
+const REQ_TXN = t.array(REQ_MOP);
+// response MOP
+const RES_V_APPEND = t.option(ELEMENT);
+const RES_V_READ = t.option(LIST);
+const RES_MOP = t.object('RES_MOP', { f: F, k: K, v_append: RES_V_APPEND, v_read: RES_V_READ });
+const RES_TXN = t.array(RES_MOP);
 
 const lists = table(
   {
@@ -42,12 +50,12 @@ export const onDisconnect = spacetimedb.clientDisconnected(_ctx => {
 
 // execute a transaction for a keyed append only list
 export const txn = spacetimedb.procedure(
-  { txn: TXN },
-  TXN,
+  { txn: REQ_TXN },
+  RES_TXN,
   (ctx, { txn }) => {
     console.log(`[txn] txn: "${txn}"`);
 
-    const res: typeof txn = [];
+    const res: { f: string, k: number, v_append: number | undefined, v_read: number[] | undefined }[] = [];
 
     ctx.withTx(ctx => {
       for (const { f, k, v } of txn) {
@@ -55,21 +63,21 @@ export const txn = spacetimedb.procedure(
           case 'r':
             const read = ctx.db.lists.key.find(k);
             if (read == null) {
-              res.push({ f: 'r', k: k, v: undefined });
+              res.push({ f: 'r', k: k, v_read: undefined, v_append: undefined });
             } else {
-              res.push({ f: 'r', k: k, v: read.list });
+              res.push({ f: 'r', k: k, v_read: read.list, v_append: undefined });
             }
             break;
           case 'append':
             let list = ctx.db.lists.key.find(k);
             if (list == null) {
-              list = { key: k, list: v };
+              list = { key: k, list: [v!] };
               ctx.db.lists.insert(list);
             } else {
-              list.list += ' ' + v;
+              list.list.concat(v!);
               ctx.db.lists.key.update(list);
             }
-            res.push({ f: 'append', k: k, v: v });
+            res.push({ f: 'append', k: k, v_read: undefined, v_append: v! });
             break;
         }
       }
