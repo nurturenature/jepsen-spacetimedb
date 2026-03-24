@@ -72,6 +72,12 @@ async function main(): Promise<void> {
             const txn: TXN = JSON.parse(body) as TXN;
             const procedure: { f: string, k: number, v_append: number | undefined, v_read: number[] | undefined }[] =
               await conn.procedures.txn({ txn: txn });
+
+            // TODO: remove debugging
+            for (const mop of procedure) {
+              console.log(`[endpoint][procedure] mop: f: ${mop.f}, k: ${mop.k}, v_read: ${mop.v_read}, v_append: ${mop.v_append}`);
+            }
+
             const result = procedure.map(({ f, k, v_append, v_read }) => {
               switch (f) {
                 case "r":

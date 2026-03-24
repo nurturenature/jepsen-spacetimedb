@@ -83,6 +83,11 @@ export const txn = spacetimedb.procedure(
       }
     });
 
+    // TODO: remove debugging
+    for (const mop of res) {
+      console.log(`[txn] res: mop: f: ${mop.f}, k: ${mop.k}, v_read: ${mop.v_read}, v_append: ${mop.v_append}`);
+    }
+
     console.log(`[txn] res: ${res}`);
     return res;
   });
