@@ -13,6 +13,6 @@
    {:db     (role/roles-based-db opts)
     :client (role/restricted-client)
     :roles  (role/roles-map opts)
-    :spacetimedb {:table "list-append" :dispatch-by-f {:txn ["procedure"]}}}))
+    :spacetimedb {:table "lists" :dispatch-by-f {:txn ["procedure"]}}}))
 
 

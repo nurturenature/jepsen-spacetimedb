@@ -41,11 +41,11 @@ export const onDisconnect = spacetimedb.clientDisconnected(_ctx => {
 });
 
 // execute a transaction for a keyed append only list
-export const list_append = spacetimedb.procedure(
+export const txn = spacetimedb.procedure(
   { txn: TXN },
   TXN,
   (ctx, { txn }) => {
-    console.log(`[list_append] txn: "${txn}"`);
+    console.log(`[txn] txn: "${txn}"`);
 
     const res: typeof txn = [];
 
@@ -75,6 +75,6 @@ export const list_append = spacetimedb.procedure(
       }
     });
 
-    console.log(`[list_append] res: ${res}`);
+    console.log(`[txn] res: ${res}`);
     return res;
   });

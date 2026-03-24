@@ -72,7 +72,7 @@ async function main(): Promise<void> {
         switch (method! + url) {
           case "POST" + "/lists/txn/procedure":
             const txn: TXN = JSON.parse(body) as TXN;
-            const result = await conn.procedures.list_append({ txn: txn });
+            const result = await conn.procedures.txn({ txn: txn });
             response = JSON.stringify({ type: 'ok', value: result });
             break;
 
