@@ -2,7 +2,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { Identity } from 'spacetimedb';
-import { SenderError } from 'spacetimedb/server';
 import {
   DbConnection,
   ErrorContext,
@@ -82,7 +81,7 @@ async function main(): Promise<void> {
                   return [f, k, v_append];
 
                 default:
-                  throw new SenderError(`Invalid f in txn result: ${result}`);
+                  throw new Error(`Invalid f in txn result: ${result}`);
               }
             });
 
