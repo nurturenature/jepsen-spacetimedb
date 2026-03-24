@@ -198,6 +198,11 @@
     :parse-fn str
     :validate [string? "Must be a String."]]
 
+   [nil "--spacetimedb-version VERSION" "Version of SpacetimeDB to install."
+    :default  "2.1.0"
+    :parse-fn str
+    :validate [string? "Must be a String."]]
+
    ["-w" "--workload NAME" "What workload should we run?"
     :parse-fn keyword
     :missing  (str "Must specify a workload: " (cli/one-of workloads))

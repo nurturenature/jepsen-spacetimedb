@@ -65,7 +65,7 @@
     (c/exec :git :clone :-b :main :--depth :1 :--single-branch "https://github.com/nurturenature/jepsen-spacetimedb.git")))
 
 (defn install-spacetimedb
-  []
+  [version]
   (c/su
    (c/exec :mkdir :--parents jepsen-dir)
 
@@ -76,6 +76,10 @@
            (c/exec :curl :-sSf :--output :install-spacetimedb.sh "https://install.spacetimedb.com")
            (c/exec :chmod :a+x :install-spacetimedb.sh)
            (c/exec "./install-spacetimedb.sh" :--yes)
+
+           ; explicit version
+           (c/exec (:binary spacetimedb-files) :version :install version)
+           (c/exec (:binary spacetimedb-files) :version :use version)
 
            ; configuring should also create config ~/.config/spacetime/cli.toml
            (c/exec (:binary spacetimedb-files) :server :set-default :local)))))
@@ -104,14 +108,14 @@
 
 (defn stdb
   "Local SpacetimeDB database."
-  []
+  [version]
   (reify db/DB
     (setup!
       [this test node]
       (info "Setting up SpacetimeDB " node)
 
       (install-packages)
-      (install-spacetimedb)
+      (install-spacetimedb version)
 
       (db/start! this test node)
       (u/sleep 1000) ; TODO: sleep for 1s to allow endpoint to come up, should be retry http connection

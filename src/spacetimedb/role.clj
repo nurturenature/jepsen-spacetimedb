@@ -27,8 +27,8 @@
 
 (defn roles-based-db
   "Given test opts, returns a composite DB that supports all of the roles."
-  [_opts]
-  (role/db {spacetimedb-role (stdb/stdb)
+  [{:keys [spacetimedb-version] :as _opts}]
+  (role/db {spacetimedb-role (stdb/stdb spacetimedb-version)
             client-role      (client-node/client-node)}))
 
 (defn restricted-client
