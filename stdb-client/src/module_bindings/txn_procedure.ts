@@ -12,7 +12,6 @@ import {
 
 import {
   ReqMop,
-  ResMop,
 } from "./types";
 
 export const params = {
@@ -20,4 +19,4 @@ export const params = {
     return __t.array(ReqMop);
   },
 };
-export const returnType = __t.array(ResMop)
+export const returnType = __t.string()

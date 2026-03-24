@@ -51,7 +51,7 @@ export const onDisconnect = spacetimedb.clientDisconnected(_ctx => {
 // execute a transaction for a keyed append only list
 export const txn = spacetimedb.procedure(
   { txn: REQ_TXN },
-  RES_TXN,
+  t.string(),
   (ctx, { txn }) => {
     console.log(`[txn] txn: "${txn}"`);
 
@@ -60,7 +60,7 @@ export const txn = spacetimedb.procedure(
       console.log(`[txn] txn: mop: f: ${mop.f}, k: ${mop.k}, v: ${mop.v}`);
     }
 
-    const res: { f: string, k: number, v_append: number | undefined, v_read: number[] | undefined }[] = [];
+    const res: (['r', number, null | number[]] | ['append', number, number])[] = [];
 
     ctx.withTx(ctx => {
       for (const { f, k, v } of txn) {
@@ -68,9 +68,9 @@ export const txn = spacetimedb.procedure(
           case 'r':
             const read = ctx.db.lists.key.find(k);
             if (read == null) {
-              res.push({ f: 'r', k: k, v_read: undefined, v_append: undefined });
+              res.push(['r', k, null]);
             } else {
-              res.push({ f: 'r', k: k, v_read: read.list, v_append: undefined });
+              res.push(['r', k, read.list]);
             }
             break;
           case 'append':
@@ -82,17 +82,19 @@ export const txn = spacetimedb.procedure(
               list.list.push(v!);
               ctx.db.lists.key.update(list);
             }
-            res.push({ f: 'append', k: k, v_read: undefined, v_append: v! });
+            res.push(['append', k, v!]);
             break;
         }
       }
     });
 
     // TODO: remove debugging
-    for (const mop of res) {
-      console.log(`[txn] res: mop: f: ${mop.f}, k: ${mop.k}, v_read: ${mop.v_read}, v_append: ${mop.v_append}`);
+    for (const [f, k, v] of res) {
+      console.log(`[txn] res: mop: [${f}, ${k}, ${v}]`);
     }
 
-    console.log(`[txn] res: ${res}`);
-    return res;
+    const result = JSON.stringify(res);
+
+    console.log(`[txn] result: ${result}`);
+    return result;
   });

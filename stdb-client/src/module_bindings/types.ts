@@ -23,11 +23,3 @@ export const ReqMop = __t.object("ReqMop", {
 });
 export type ReqMop = __Infer<typeof ReqMop>;
 
-export const ResMop = __t.object("ResMop", {
-  f: __t.string(),
-  k: __t.i32(),
-  vAppend: __t.option(__t.i32()),
-  vRead: __t.option(__t.array(__t.i32())),
-});
-export type ResMop = __Infer<typeof ResMop>;
-
