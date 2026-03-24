@@ -78,18 +78,19 @@ async function main(): Promise<void> {
               console.log(`[endpoint][procedure] mop: f: ${mop.f}, k: ${mop.k}, v_read: ${mop.v_read}, v_append: ${mop.v_append}`);
             }
 
-            const result = procedure.map(({ f, k, v_append, v_read }) => {
-              switch (f) {
-                case "r":
-                  return [f, k, v_read];
+            const result: ['r' | 'append', number, undefined | number[] | number][] =
+              procedure.map(({ f, k, v_append, v_read }) => {
+                switch (f) {
+                  case "r":
+                    return [f, k, v_read];
 
-                case "append":
-                  return [f, k, v_append];
+                  case "append":
+                    return [f, k, v_append];
 
-                default:
-                  throw new Error(`Invalid f in txn result: ${result}`);
-              }
-            });
+                  default:
+                    throw new Error(`Invalid f in txn result: ${result}`);
+                }
+              });
 
             response = JSON.stringify({ type: 'ok', value: result });
             break;
