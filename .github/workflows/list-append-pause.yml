@@ -1,4 +1,4 @@
-name: list-append
+name: list-append-pause
 
 on:
   workflow_dispatch:
@@ -12,7 +12,7 @@ on:
         description: "Nemeses (as JSON)"
         type: string
         required: true
-        default: "[ 'none' ]"
+        default: "[ 'pause' ]"
       rates:
         description: "Rates (as JSON)"
         type: string
@@ -40,7 +40,7 @@ on:
         default: "{'repeat': [ '1' ], 'timeout-minutes': 20 }"
 
 jobs:
-  list-append:
+  list-append-pause:
     uses: nurturenature/jepsen-spacetimedb/.github/workflows/jepsen-test-runner.yml@main
     with:
       workloads: ${{ inputs.workloads}}

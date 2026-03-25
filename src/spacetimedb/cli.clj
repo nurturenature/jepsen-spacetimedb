@@ -103,7 +103,9 @@
                          :timeline           (timeline/html)
                          :stats              (checker/stats)
                          :exceptions         (checker/unhandled-exceptions)
-                         :logs-client        (checker/log-file-pattern #"(ERROR)" client-node/log-file-short)
+                         :logs-client        (if (:ignore-client-logs? opts)
+                                               (checker/unbridled-optimism)
+                                               (checker/log-file-pattern #"(ERROR)" client-node/log-file-short))
                          :logs-spacetimedb   (checker/log-file-pattern #"(ERROR)" stdb/log-file-short)
                          :workload           (:checker workload)})
             :client    (:client workload)
@@ -145,6 +147,12 @@
     :parse-fn str
     :validate [string? "Must be a String."]]
 
+   ;; TODO: bug in SpacetimeDB is logging spurious ERRORs in client logs
+   [nil "--ignore-client-logs? BOOLEAN" "Ignore client logs when looking for errors?"
+    :default  true
+    :parse-fn parse-boolean
+    :validate [boolean? "Must be a boolean."]]
+
    [nil "--key-count NUMBER" "Number of distinct keys at any point."
     :default  10
     :parse-fn parse-long
@@ -185,8 +193,10 @@
     :parse-fn parse-long
     :validate [pos? "Must be a positive number."]]
 
-   [nil "--no-wipe" "If set, do not wipe files when tearing down nodes."
-    :default false]
+   [nil "--no-wipe? BOOLEAN" "Do not wipe files when tearing down nodes?"
+    :default false
+    :parse-fn parse-boolean
+    :validate [boolean? "Must be a boolean."]]
 
    ["-r" "--rate HZ" "Approximate request rate, in hz"
     :default 100

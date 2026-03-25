@@ -68,8 +68,8 @@
       (info "Tearing down client-node " node)
       (db/kill! this test node)
 
-      (if (:no-wipe test)
-        (info "--no-wipe is set, setup files are preserved and not deleted")
+      (if (:no-wipe? test)
+        (info "--no-wipe? is set, setup files are preserved and not deleted")
         (c/su
          (wipe))))
 

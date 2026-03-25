@@ -122,3 +122,25 @@ Act on the SpacetimeDB or client's process with:
 - `wr-register-procedure` - wr-register data model with all writes/reads in a transaction in a `Procedure`
 
 - `wr-register-procedure-pause-resume` - like `wr-register-procedure` action with the addition of a pause nemesis
+
+----
+
+## Issues
+
+```clj
+:matches ({:node "n1",
+           :line "❌ ERROR Updating a row that was not present in the cache. Table: lists, RowId: 11"}
+          {:node "n1",
+           :line "❌ ERROR Updating a row that was not present in the cache. Table: lists, RowId: 51"}
+          {:node "n1",
+           :line "❌ ERROR Updating a row that was not present in the cache. Table: lists, RowId: 68"}
+           ...)
+```
+
+```log
+[endpoint] request: body: [{"f":"append","k":51,"v":3},{"f":"r","k":51,"v":null}]
+❌ ERROR Updating a row that was not present in the cache. Table: lists, RowId: 51
+[endpoint] response: "{"type":"ok","value":[["append",51,3],["r",51,[1,2,3]]]}"
+```
+
+[TS Client: "ERROR: Negative reference count for row", and "ERROR: Updating a row that was not present in the cache"](https://github.com/clockworklabs/SpacetimeDB/issues/2894)
