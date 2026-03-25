@@ -13,86 +13,89 @@ Jepsen was purpose built to test these database properties. Lets develop a suite
 
 ----
 
-## Write/Read Register
+## Keyed Append Only List
 
-Let's start with using a simple key/value int/int register for our data model.
+Using a keyed append only list as a data model will give Jepsen's checker, Elle, the best chance to find the most anomalies.
 
-It's a weaker data structure than an append only list, but it's easier to implement and explain.
-We'll evolve our way into using Jepsen's list-append.
-
-```typescript
-const spacetimedb = schema({
-  registers: table(
-    { public: true },
-    {
-      k: t.i32().primaryKey(),
-      v: t.i32(),
-    }
-  ),
-});
-```
-
-----
-
-## Transactions
-
-SpacetimeDB is architected for all writes and reads to happen in a transaction and be executed on the server. Writes are serialized by the database using a single writer, no MVCC.
-
-One can also subscribe to a query that is synced to the client and receive client events for insert/delete/update events.
-
-You write client functions, `Procedure`s, `Reducer`s, and `View`s, and then publish them to the SpacetimeDB database. The client will call the functions over a websocket.
-
-There is no builtin `upsert` functionality, so a `Reducer` is published to the database:
+### Schema
 
 ```typescript
-export const upsertRegister = spacetimedb.reducer(
-  { k: t.i32(), v: t.i32() },
-  (ctx, { k, v }) => {
-    const register = ctx.db.registers.k.find(k);
-    if (register) {
-      register.v = v;
-      ctx.db.registers.k.update(register);
-    } {
-      ctx.db.registers.insert({ k: k, v: v });
-    }
+const lists = table(
+  {
+    name: 'lists',
+    public: true
+  },
+  {
+    key: KEY.primaryKey(),
+    list: LIST,
   }
 );
 ```
 
-Note the use of the find-test-branch-update/insert pattern.
+### Transactions
 
-Jepsen will generate transactions consisting of a random number of writes and/or reads against random keys with monotonically increasing values per key.
-We use an exponential key distribution to emphasize potential conflicts against the same row.
+Jepsen will generate transactions consisting of random writes/reads of random keys. Typically we use an exponential key distribution to emphasis potential conflicts between concurrent transactions.
+
+Sample of a transaction from a Jepsen test generator showing:
 
 ```clj
-;; sample of clients 6, 7, and 8 invoking transactions and receiving an ok response
+;; list with a key of 1
+[[:r 1 nil]    ;; starts out empty, nil
+ [:append 1 1] ;; append 1 to the end
+ [:append 1 2] ;; append 2 to the end
+ [:r 1 [1 2]]] ;; reading our writes :)
+```
 
-;; [:r k v] -> [read  key value] (read values are nil on invocations)
-;; [:w k v] -> [write key value]
+Note that by using an append only list, every read will/should reflect a complete ordered history of all writes to that object, in our case the table row with the indexed key.
 
-6 :invoke :txn  [[:w 8 21] [:w 7 12] [:w 7 13] [:w 9 31]]
-6 :ok     :txn  [[:w 8 21] [:w 7 12] [:w 7 13] [:w 9 31]]
-7 :invoke :txn  [[:r 9 nil] [:r 5 nil]]
-7 :ok     :txn  [[:r 9 31] [:r 5 3]]
-8 :invoke :txn  [[:w 9 32] [:w 7 14] [:w 8 22]]
-8 :ok     :txn  [[:w 9 32] [:w 7 14] [:w 8 22]]
+### Transactions in SpacetimeDB
+
+SpacetimeDB is architected for all writes to happen in a transaction in a function that's executed on the server.
+
+Reads can happen in transactions in functions executed on the server, or from local caches that are sync'd by the server.
+
+Our initial implementation will perform the Jepsen generated transaction in a SpacetimeDB transaction
+ in a Procedure that runs on the server.
+
+```typescript
+// writes(appends)
+const append_list = ctx.db.lists.key.find(k);
+if (append_list == null) {
+  const new_list = { key: k, list: [v!] };
+  ctx.db.lists.insert(new_list);
+} else {
+  append_list.list.push(v!);
+  ctx.db.lists.key.update(append_list);
+}
+res.push(['append', k, v!]);
+
+// reads
+const read_list = ctx.db.lists.key.find(k);
+if (read_list == null) {
+  res.push(['r', k, null]);
+} else {
+  res.push(['r', k, read_list.list]);
+}
 ```
 
 ----
 
-## Consistency Model
+## Correctness
 
-We'll use Jepsen's [Consistency Models](https://jepsen.io/consistency/models).
+As all writes are done on a single database using a single writer, no MVCC or multiple write nodes, our expectation is observe a [Strong Serializable](https://jepsen.io/consistency/models/strong-serializable) consistency model for Spacetime DB transactions.
 
-SpacetimeDB claims to offer a [Strong Serializable](https://jepsen.io/consistency/models/strong-serializable) consistency model for transactions.
+SpacetimeDB describes itself as offering "serializable isolation", "ACID", "Atomic", and similar.
 
-Note that Strong Serializable also includes [Monotonic Atomic View](https://jepsen.io/consistency/models/monotonic-atomic-view).
+For more information on defining and testing consistency models:
 
-When determining version orders for `wr-register`, the following Jepsen checker flags are set to `true`:
+- Jepsen's [Consistency Models](https://jepsen.io/consistency/models)
+- [Elle: Inferring Isolation Anomalies from Experimental
+Observations](https://raw.githubusercontent.com/jepsen-io/elle/master/paper/elle.pdf)
 
-- linearizable-keys?  Uses realtime order
-- sequential-keys?    Uses process order
-- wfr-keys?           Assumes writes follow reads in a txn
+Note that we are *not* testing:
+
+- performance
+- security
 
 ----
 
@@ -102,7 +105,7 @@ Jepsen runs the real database with real clients in a real environment and introd
 
 If your database is successful, e.g. adoption, lifetime, etc., it will experience environment faults.
 
-Are they really Faults or just Real Life? 🤔
+Are they really Faults? or just Real Life? 🤔
 
 ### Pause/Resume
 
@@ -115,17 +118,38 @@ Act on the SpacetimeDB or client's process with:
 (cu/grepkill! :cont spacetimedb-ps-name)
 ```
 
+#### Example of a pause/resume test
+
+- you can see when SpacetimeDB server was paused/resumed
+  - all transactions were paused
+- `info`s are transactions that timed out due to pauses
+
+![plot of pause/resume latency raw](docs/images/pause-resume-latency-raw.png)
+
 ----
 
 ## GitHub Actions
 
-- `wr-register-procedure` - wr-register data model with all writes/reads in a transaction in a `Procedure`
+- `list-append`
+  
+  - keyed append only list
+  - all writes and reads in a transaction in a Procedure on the SpacetimeDB server
+  - no environmental faults
 
-- `wr-register-procedure-pause-resume` - like `wr-register-procedure` action with the addition of a pause nemesis
+- `list-append-pause`
+  
+  - `list-append` with
+  - pause/resume nemesis
 
 ----
 
 ## Issues
+
+A no fault environment will still produce psychosomatic, the write actually does happen, error messages.
+
+Likely a reintroduction of [TS Client: "ERROR: Negative reference count for row", and "ERROR: Updating a row that was not present in the cache"](https://github.com/clockworklabs/SpacetimeDB/issues/2894)
+
+Test results:
 
 ```clj
 :matches ({:node "n1",
@@ -137,10 +161,10 @@ Act on the SpacetimeDB or client's process with:
            ...)
 ```
 
+Client log showing that key 51 did have 3 appended to it as the transaction read its own writes:
+
 ```log
 [endpoint] request: body: [{"f":"append","k":51,"v":3},{"f":"r","k":51,"v":null}]
 ❌ ERROR Updating a row that was not present in the cache. Table: lists, RowId: 51
 [endpoint] response: "{"type":"ok","value":[["append",51,3],["r",51,[1,2,3]]]}"
 ```
-
-[TS Client: "ERROR: Negative reference count for row", and "ERROR: Updating a row that was not present in the cache"](https://github.com/clockworklabs/SpacetimeDB/issues/2894)
