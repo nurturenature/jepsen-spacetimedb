@@ -145,6 +145,8 @@ Act on the SpacetimeDB or client's process with:
 
 ## Issues
 
+### False Errors
+
 A no fault environment will still produce psychosomatic, the write actually does happen, error messages.
 
 Likely a reintroduction of [TS Client: "ERROR: Negative reference count for row", and "ERROR: Updating a row that was not present in the cache"](https://github.com/clockworklabs/SpacetimeDB/issues/2894)
