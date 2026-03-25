@@ -57,27 +57,30 @@ export const txn = spacetimedb.procedure(
       for (const { f, k, v } of txn) {
         switch (f) {
           case 'r':
-            const read = ctx.db.lists.key.find(k);
-            if (read == null) {
+            const read_list = ctx.db.lists.key.find(k);
+            if (read_list == null) {
               res.push(['r', k, null]);
             } else {
-              res.push(['r', k, read.list]);
+              res.push(['r', k, read_list.list]);
             }
             break;
           case 'append':
-            let list = ctx.db.lists.key.find(k);
-            if (list == null) {
-              list = { key: k, list: [v!] };
-              ctx.db.lists.insert(list);
+            const append_list = ctx.db.lists.key.find(k);
+            if (append_list == null) {
+              const new_list = { key: k, list: [v!] };
+              ctx.db.lists.insert(new_list);
             } else {
-              list.list.push(v!);
-              ctx.db.lists.key.update(list);
+              append_list.list.push(v!);
+              ctx.db.lists.key.update(append_list);
             }
             res.push(['append', k, v!]);
             break;
         }
       }
     });
+
+    // TODO: remove debugging
+    console.log(`[txn] res: ${res}`);
 
     const result = JSON.stringify(res);
 
