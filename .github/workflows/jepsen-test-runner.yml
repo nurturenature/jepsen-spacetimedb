@@ -86,13 +86,13 @@ jobs:
       matrix:
         workload: ${{ fromJSON(inputs.workloads) }}
         nemesis: ${{ fromJSON(inputs.nemeses) }}
+        concurrency: ${{ fromJSON(inputs.concurrency) }}
         rate: ${{ fromJSON(inputs.rates) }}
         time-limit: ${{ fromJSON(inputs.time-limits) }}
-        concurrency: ${{ fromJSON(inputs.concurrency) }}
         repeat: ${{ fromJSON(inputs.args).repeat }}
 
     env:
-      test-title: ${{ matrix.concurrency }}c-${{ matrix.rate }}tps-${{ matrix.time-limit }}s-${{ matrix.workload }}-${{ matrix.nemesis }}-${{ matrix.repeat }}
+      test-title: ${{ matrix.workload }}-${{ matrix.nemesis }}-${{ matrix.concurrency }}w-${{ matrix.rate }}tps-${{ matrix.time-limit }}s-${{ matrix.repeat }}
 
     steps:
       - name: Checkout jepsen-spacetimedb
