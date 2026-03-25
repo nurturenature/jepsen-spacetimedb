@@ -6,9 +6,8 @@ import { schema, SenderError, t, table, } from 'spacetimedb/server';
 const KEY = t.i32();
 const ELEMENT = t.i32();
 const LIST = t.array(t.i32());
-const LISTS = t.array(LIST);
 
-// txn [{ f: append|r k: key v: element|list }...]
+// txn [{ f: 'append'|'r' k: key v: element|list|null }...]
 // MOP
 const F = t.string();
 const K = KEY;
@@ -16,11 +15,8 @@ const K = KEY;
 const REQ_V = t.option(ELEMENT);
 const REQ_MOP = t.object('REQ_MOP', { f: F, k: K, v: REQ_V });
 const REQ_TXN = t.array(REQ_MOP);
-// response MOP
-const RES_V_APPEND = t.option(ELEMENT);
-const RES_V_READ = t.option(LIST);
-const RES_MOP = t.object('RES_MOP', { f: F, k: K, v_append: RES_V_APPEND, v_read: RES_V_READ });
-const RES_TXN = t.array(RES_MOP);
+// TXN response
+type TXN_RESPONSE = (['r', number, null | number[]] | ['append', number, number])[];
 
 const lists = table(
   {
@@ -53,14 +49,9 @@ export const txn = spacetimedb.procedure(
   { txn: REQ_TXN },
   t.string(),
   (ctx, { txn }) => {
-    console.log(`[txn] txn: "${txn}"`);
+    console.log(`[txn] txn: "${txn.toString()}"`);
 
-    // TODO: remove debugging
-    for (const mop of txn) {
-      console.log(`[txn] txn: mop: f: ${mop.f}, k: ${mop.k}, v: ${mop.v}`);
-    }
-
-    const res: (['r', number, null | number[]] | ['append', number, number])[] = [];
+    const res: TXN_RESPONSE = [];
 
     ctx.withTx(ctx => {
       for (const { f, k, v } of txn) {
@@ -87,11 +78,6 @@ export const txn = spacetimedb.procedure(
         }
       }
     });
-
-    // TODO: remove debugging
-    for (const [f, k, v] of res) {
-      console.log(`[txn] res: mop: [${f}, ${k}, ${v}]`);
-    }
 
     const result = JSON.stringify(res);
 

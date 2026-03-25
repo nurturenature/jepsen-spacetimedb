@@ -26,6 +26,9 @@ type V = number | null;
 type MOP = { f: F, k: K, v: V };
 type TXN = MOP[];
 
+// TXN response
+type TXN_RESPONSE = (['r', number, null | number[]] | ['append', number, number])[];
+
 // Main entry point
 async function main(): Promise<void> {
   console.log(`Connecting to SpacetimeDB...`);
@@ -70,12 +73,9 @@ async function main(): Promise<void> {
         switch (method! + url) {
           case "POST" + "/lists/txn/procedure":
             const txn: TXN = JSON.parse(body) as TXN;
-            const procedure = await conn.procedures.txn({ txn: txn });
+            const txn_response = await conn.procedures.txn({ txn: txn });
 
-            // TODO: remove debugging
-            console.log(`[endpoint][procedure]: ${procedure}`);
-
-            const result = JSON.parse(procedure) as (['r', number, null | number[]] | ['append', number, number])[];
+            const result = JSON.parse(txn_response) as TXN_RESPONSE;
 
             response = JSON.stringify({ type: 'ok', value: result });
             break;

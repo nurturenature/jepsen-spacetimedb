@@ -18,26 +18,25 @@
        json/generate-string))
 
 (defn json-result->op
-  "Given an f and a json string, decodes it into an op.
+  "Given a json string, decodes it into an op.
    Only care about the type, value, and error keys."
-  [f json-string]
+  [json-string]
   (let [op (-> json-string
                (json/decode true)
                (select-keys [:type :value :error])
                (update :type  keyword)
                (update :value (fn [value]
-                                (case f
-                                  :txn (->> value
-                                            (mapv (fn [{:keys [f k v] :as _mop}]
-                                                    [(keyword f) k v])))))))]
+                                (->> value
+                                     (mapv (fn [[f k v :as _mop]]
+                                             [(keyword f) k v]))))))]
     op))
 
 (defn invoke
   "Invokes the op against the endpoint and returns the result."
-  [op endpoint timeout preprocess postprocess]
+  [op endpoint timeout]
   (let [body   (-> op
                    (select-keys [:type :f :value]) ; don't expose rest of op map 
-                   preprocess)]
+                   op->json-txn)]
     (try+
      (let [result (http/post endpoint
                              {:body               body
@@ -47,7 +46,7 @@
                               :accept             "application/json"})
            op'    (-> result
                       :body
-                      postprocess)]
+                      json-result->op)]
        (merge op op'))
 
      (catch java.net.ConnectException ex
@@ -83,11 +82,6 @@
               :type  :info
               :error {:status 500})))))
 
-(def invoke-dispatch
-  "Maps [table f] to {:preprocess fn :postprocess fn}"
-  {["lists" :txn] {:preprocess  op->json-txn
-                   :postprocess (partial json-result->op :txn)}})
-
 ; (.SpacetimeDBClient conn)
 ; conn = {:spacetimedb {:table         \"...\"
 ;                       :dispatch-by-f {f \"technique\"}}}
@@ -113,9 +107,8 @@
     (let [op  (assoc op :node node)
           uri (str uri "/" table "/" (name f) "/" (->> f
                                                        (get dispatch-by-f)
-                                                       rand-nth))
-          {:keys [preprocess postprocess]} (get invoke-dispatch [table f])]
-      (invoke op uri timeout preprocess postprocess)))
+                                                       rand-nth))]
+      (invoke op uri timeout)))
 
   (teardown!
     [_this _test])
