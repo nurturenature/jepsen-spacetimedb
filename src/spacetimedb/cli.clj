@@ -29,13 +29,17 @@
 (def nemeses
   "A collection of valid nemeses."
   #{:kill-start
+    :partition
     :pause})
 
 (def all-nemeses
   "Combinations of nemeses for test-all"
   [[]
    [:kill-start]
-   [:pause]])
+   [:partition]
+   [:pause]
+   [:kill-start :partition]
+   [:pause :partition]])
 
 (def special-nemeses
   "A map of special nemesis names to collections of faults"
@@ -82,6 +86,7 @@
                    :kill-start {:targets [nil]}
                    :network    {:targets   [nil]
                                 :behaviors [{:delay {}} {:corrupt {}}]}
+                   :partition  {:targets [:majority]}
                    :pause      {:targets [nil]}})]
     (merge tests/noop-test
            opts
