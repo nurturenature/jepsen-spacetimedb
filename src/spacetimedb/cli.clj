@@ -93,10 +93,12 @@
                          :timeline           (timeline/html)
                          :stats              (checker/stats)
                          :exceptions         (checker/unhandled-exceptions)
-                         :logs-client        (if (:ignore-client-logs? opts)
+                         :logs-client        (if (:ignore-logs? opts)
                                                (checker/unbridled-optimism)
                                                (checker/log-file-pattern #"(ERROR)" client-node/log-file-short))
-                         :logs-spacetimedb   (checker/log-file-pattern #"(ERROR)" stdb/log-file-short)
+                         :logs-spacetimedb   (if (:ignore-logs? opts)
+                                               (checker/unbridled-optimism)
+                                               (checker/log-file-pattern #"(ERROR)" stdb/log-file-short))
                          :workload           (:checker workload)})
             :client    (:client workload)
             :nemesis   (:nemesis nemesis)
@@ -138,7 +140,8 @@
     :validate [string? "Must be a String."]]
 
    ;; TODO: bug in SpacetimeDB is logging spurious ERRORs in client logs
-   [nil "--ignore-client-logs? BOOLEAN" "Ignore client logs when looking for errors?"
+   ;;       server logs errors but they don't affect db correctness
+   [nil "--ignore-logs? BOOLEAN" "Ignore logs when looking for errors?"
     :default  true
     :parse-fn parse-boolean
     :validate [boolean? "Must be a boolean."]]
