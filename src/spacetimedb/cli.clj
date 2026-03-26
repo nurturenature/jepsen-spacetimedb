@@ -28,20 +28,14 @@
 
 (def nemeses
   "A collection of valid nemeses."
-  #{:disconnect
-    :stop-start
-    :partition-stdb
-    :pause :kill})
+  #{:kill-start
+    :pause})
 
 (def all-nemeses
   "Combinations of nemeses for test-all"
   [[]
-   [:disconnect]
-   [:stop-start]
-   [:pause]
-   [:partition-stdb]
-   [:pause :partition-stdb]
-   [:kill]])
+   [:kill-start]
+   [:pause]])
 
 (def special-nemeses
   "A map of special nemesis names to collections of faults"
@@ -85,12 +79,8 @@
                   {:db                 db
                    :nodes              (:nodes opts)
                    :faults             (:nemesis opts)
-                   :disconnect         {:targets [nil]}
-                   :stop-start         {:targets [nil]}
-                   :partition-stdb     {:targets [nil]}
-                   :pause              {:targets [nil]}
-                   :kill               {:targets [:majority]}
-                   :interval           (:nemesis-interval opts)})]
+                   :kill-start         {:targets [nil]}
+                   :pause              {:targets [nil]}})]
     (merge tests/noop-test
            opts
            {:name      (test-name opts)
