@@ -9,7 +9,7 @@ Why SpacetimeDB?
 
 SpacetimeDB's recent release of its version 2 has attracted attention and generated some questions around its and other databases' consistency models, isolation levels and durability.
 
-Jepsen was purpose built to test these database properties. Lets develop a suite of Jepsen tests for SpacetimeDB to see what we can learn, and hopefully contribute back to the project.
+Jepsen was purpose built to test these database properties. Lets develop a suite of Jepsen Tests for SpacetimeDB to see what we can learn, and hopefully contribute back to the project.
 
 ----
 
@@ -36,7 +36,7 @@ const lists = table(
 
 Jepsen will generate transactions consisting of random writes/reads of random keys. Typically we use an exponential key distribution to emphasis potential conflicts between concurrent transactions.
 
-Sample of a transaction from a Jepsen test generator showing:
+Sample of a transaction from a Jepsen Test generator showing:
 
 ```clj
 ;; list with a key of 1
@@ -107,6 +107,8 @@ If your database is successful, e.g. adoption, lifetime, etc., it will experienc
 
 Are they really Faults? or just Real Life? 🤔
 
+----
+
 ### Pause/Resume
 
 Randomly pause/resume a random set of nodes for a random duration.
@@ -120,11 +122,63 @@ Act on the SpacetimeDB or client's process with:
 
 #### Example of a pause/resume test
 
+Jepsen Test log:
+
+```clj
+;; pause a random subset of nodes
+:nemesis :info :pause {"n3" :paused, "n4" :paused, "n7" :paused, "n8" :paused}
+
+;; transactions continue to be generated
+
+;; insure all nodes are resumed
+:nemesis :info :resume {"n1" :resumed, ..., "n3" :resumed, ..., "spacetimedb" :resumed}
+```
+
 - you can see when SpacetimeDB server was paused/resumed
   - all transactions were paused
 - `info`s are transactions that timed out due to pauses
 
 ![plot of pause/resume latency raw](docs/images/pause-resume-latency-raw.png)
+
+----
+
+### Kill/Start
+
+Randomly kill/start a random set of nodes for a random duration.
+Act on the SpacetimeDB or client's process with:
+
+```clj
+(cu/grepkill! :kill spacetimedb-ps-name)
+
+(cu/start-daemon!
+  {:chdir   jepsen-dir
+   :logfile log-file
+   :pidfile pid-file}
+  (:binary spacetimedb-files)
+  :start
+  :--pg-port pg-port
+  :--non-interactive)
+```
+
+#### Example of a kill/start test
+
+Jepsen Test log:
+
+```clj
+;; kill a random subset of nodes
+:nemesis :info :kill-nodes {"n10" :killed}
+
+;; transactions continue to be generated
+
+;; insure all nodes are started
+:nemesis :info :start-nodes {"n1" :already-running, "n10" :started, ..., "spacetimedb" :already-running}
+```
+
+- you can see
+  - individual client transactions fail when client node has been killed
+  - all transactions fail when SpacetimeDB server has been killed
+
+![plot of kill/start latency raw](docs/images/kill-start-latency-raw.png)
 
 ----
 
@@ -135,6 +189,11 @@ Act on the SpacetimeDB or client's process with:
   - keyed append only list
   - all writes and reads in a transaction in a Procedure on the SpacetimeDB server
   - no environmental faults
+
+- `list-append-kill`
+  
+  - `list-append` with
+  - kill/start nemesis
 
 - `list-append-pause`
   
