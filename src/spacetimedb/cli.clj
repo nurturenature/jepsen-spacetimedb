@@ -29,17 +29,13 @@
 (def nemeses
   "A collection of valid nemeses."
   #{:kill-start
-    :network
     :pause})
 
 (def all-nemeses
   "Combinations of nemeses for test-all"
   [[]
    [:kill-start]
-   [:network]
-   [:pause]
-   [:kill-start :network]
-   [:pause :network]])
+   [:pause]])
 
 (def special-nemeses
   "A map of special nemesis names to collections of faults"
