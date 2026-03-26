@@ -3,7 +3,9 @@
              [control :as c]
              [db :as db]
              [generator :as gen]
-             [nemesis :as nemesis]]
+             [nemesis :as nemesis]
+             [net :as net]
+             [random :as rand]]
             [jepsen.nemesis.combined :as nc]))
 
 (defn kill-node!
@@ -84,11 +86,89 @@
                            :stop  #{:start-nodes}
                            :color "#E8DBA0"}}})))
 
+(defn network-nemesis
+  "A nemesis that disrupts the network between server and client nodes.
+   This nemesis responds to:
+  ```
+  {:f :disrupt-network :value :node-spec}   ; target nodes as interpreted by `db-nodes`
+  {:f :heal-network    :value nil}
+   ```"
+  [db]
+  (reify
+    nemesis/Reflection
+    (fs [_this]
+      #{:disrupt-network :heal-network})
+
+    nemesis/Nemesis
+    (setup! [this {:keys [net] :as test}]
+      ; start from known good state, no shaping
+      (net/shape! net test nil nil)
+      this)
+
+    (invoke! [_this {:keys [net spacetimedb] :as test} {:keys [f value] :as op}]
+      (let [result (case f
+                     :disrupt-network (let [[targets behaviors] value
+                                            ; target nodes per db-spec
+                                            ; always include SpacetimeDB node
+                                            targets (->> targets
+                                                         (nc/db-nodes test db)
+                                                         (into #{spacetimedb}))]
+                                        (net/shape! net test targets behaviors))
+                     :heal-network    (net/shape! net test nil nil))
+            result (->> result
+                        (into (sorted-map)))]
+        (assoc op :value result)))
+
+    (teardown! [_this {:keys [net] :as test}]
+      ; leave in known good state, no shaping
+      (net/shape! net test nil nil))))
+
+(defn network-package
+  "A nemesis and generator package that disrupts the network between the server and client nodes.
+   
+   Opts:
+   ```clj
+   {:network
+    {:targets      ; A collection of node specs, e.g. [:one, :all]
+     :behaviors [  ; A collection of network behaviors that disrupt packets, e.g.:
+      {}                         ; no disruptions
+      {:delay {}}                ; delay packets by default amount
+      {:corrupt {:percent :33%}} ; corrupt 33% of packets
+      ; delay packets by default values, plus duplicate 25% of packets
+      {:delay {},
+       :duplicate {:percent :25% :correlation :80%}}]}}
+  ```
+  See [[jepsen.net/all-packet-behaviors]].
+
+  Additional options as for [[nemesis-package]]."
+  [{:keys [db faults interval network] :as _opts}]
+  (when (contains? faults :network)
+    (let [targets         (:targets network (nc/node-specs db))
+          behaviors       (:behaviors network [{}])
+          disrupt-network (fn disrupt-network [_ _]
+                            {:type  :info
+                             :f     :disrupt-network
+                             :value [(rand/nth targets) (rand/nth behaviors)]})
+          heal-network    (repeat {:type  :info
+                                   :f     :heal-network
+                                   :value nil})
+          gen             (->> (gen/flip-flop disrupt-network heal-network)
+                               (gen/stagger (or interval nc/default-interval)))]
+      {:generator       gen
+       :final-generator (take 1 heal-network)
+       :nemesis         (network-nemesis db)
+       :perf            #{{:name  "network"
+                           :fs    #{}
+                           :start #{:disrupt-network}
+                           :stop  #{:heal-network}
+                           :color "#D1E8A0"}}})))
+
 (defn nemesis-package
   "Constructs combined nemeses and generators into a nemesis package."
   [opts]
   (let [opts (update opts :faults set)]
-    (->> [(kill-start-package opts)]
+    (->> [(kill-start-package opts)
+          (network-package opts)]
          (concat (nc/nemesis-packages opts))
          (filter :generator)
          nc/compose-packages)))

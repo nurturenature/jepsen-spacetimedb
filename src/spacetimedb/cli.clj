@@ -29,13 +29,17 @@
 (def nemeses
   "A collection of valid nemeses."
   #{:kill-start
+    :network
     :pause})
 
 (def all-nemeses
   "Combinations of nemeses for test-all"
   [[]
    [:kill-start]
-   [:pause]])
+   [:network]
+   [:pause]
+   [:kill-start :network]
+   [:pause :network]])
 
 (def special-nemeses
   "A map of special nemesis names to collections of faults"
@@ -76,11 +80,13 @@
         workload ((workloads workload-name) opts)
         db       (:db workload)
         nemesis  (nemesis/nemesis-package
-                  {:db                 db
-                   :nodes              (:nodes opts)
-                   :faults             (:nemesis opts)
-                   :kill-start         {:targets [nil]}
-                   :pause              {:targets [nil]}})]
+                  {:db         db
+                   :nodes      (:nodes opts)
+                   :faults     (:nemesis opts)
+                   :kill-start {:targets [nil]}
+                   :network    {:targets   [nil]
+                                :behaviors [{:delay {}} {:corrupt {}}]}
+                   :pause      {:targets [nil]}})]
     (merge tests/noop-test
            opts
            {:name      (test-name opts)
