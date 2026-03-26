@@ -114,9 +114,7 @@
                                                          (nc/db-nodes test db)
                                                          (into #{spacetimedb}))]
                                         (net/shape! net test targets behaviors))
-                     :heal-network    (net/shape! net test nil nil))
-            result (->> result
-                        (into (sorted-map)))]
+                     :heal-network    (net/shape! net test nil nil))]
         (assoc op :value result)))
 
     (teardown! [_this {:keys [net] :as test}]
