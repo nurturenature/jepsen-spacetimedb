@@ -147,6 +147,7 @@ Jepsen Test log:
   - latency goes up around the partitions
   - transactions timeout
   - transactions fail
+  - Jepsen's watchdog restarts clients disconnected by the server
 
 ![plot of partition latency raw](docs/images/partition-latency-raw.png)
 
@@ -172,6 +173,22 @@ SpacetimeDB docs on [Reconnection Behavior](https://spacetimedb.com/docs/clients
 > If your connection is interrupted, you may need to create a new DbConnection to re-establish connectivity.
 >
 > We recommend implementing reconnection logic in your application if reliable connectivity is critical.
+
+So the tests use Jepsen's watchdog functionality to periodically check the SpacetimeDB and client node processes for liveness, restarting as necessary:
+
+```clj
+(defn watched-stdb
+  "A stdb with a watchdog to monitor and restart."
+  [version]
+  (let [opts {:running? (fn running? [_test _node]
+                          (cu/daemon-running? pid-file))
+              :interval 1000}
+        stdb (stdb version)]
+    (watchdog/db opts stdb)))
+
+;; Jepsen's watchdog noticing node "n8" is down and needs restarting
+INFO [jepsen watchdog n8] spacetimedb.db.client-node: Starting client-node  n8
+```
 
 ----
 

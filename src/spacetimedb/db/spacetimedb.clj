@@ -6,6 +6,7 @@
              [control :as c]
              [util :as u]]
             [jepsen.control.util :as cu]
+            [jepsen.db.watchdog :as watchdog]
             [jepsen.os.debian :as debian]))
 
 (def spacetimedb-db-name
@@ -137,7 +138,13 @@
       (swap! spacetimedb-started? (constantly false)))
 
     ; SpacetimeDB doesn't have `primaries`.
-    ; db/Primary
+    db/Primary
+    (primaries
+      [_db _test]
+      nil)
+
+    (setup-primary!
+      [_db _test _node])
 
     db/LogFiles
     (log-files
@@ -194,3 +201,12 @@
                    (c/su
                     (u/retry 1 (cu/grepkill! :cont spacetimedb-ps-name)))
                    :resumed)))))
+
+(defn watched-stdb
+  "A stdb with a watchdog to monitor and restart."
+  [version]
+  (let [opts {:running? (fn running? [_test _node]
+                          (cu/daemon-running? pid-file))
+              :interval 1000}
+        stdb (stdb version)]
+    (watchdog/db opts stdb)))
