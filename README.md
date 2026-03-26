@@ -109,6 +109,72 @@ Are they really Faults? or just Real Life? 🤔
 
 ----
 
+### Partition
+
+Partition the network so there's a majority of nodes on one side of the partition, and a minority on the other. Randomly select which side SpacetimeDB and client nodes are on.
+
+```clj
+;; use iptables to drop traffic 
+;; from nodes on the other side of the partition
+(su (exec :iptables :-A :INPUT :-s (control.net/ip src) :-j :DROP :-w))
+
+;; heal
+(su
+  (exec :iptables :-F :-w)
+  (exec :iptables :-X :-w))
+```
+
+#### Example of a partition test
+
+Jepsen Test log:
+
+```clj
+;; partition a random majority of nodes
+:nemesis :info :start-partition :majority
+:nemesis :info :start-partition [:isolated {"n2" #{"n5" "n8" "n1" "n9" "n10" "n7"},
+                                            "n5" #{"n2" "n6" "n4" "spacetimedb" "n3"},
+                                            "spacetimedb" #{"n5" "n8" "n1" "n9" "n10" "n7"},
+                                            ...}]
+
+;; transactions continue to be generated
+
+;; heal network
+:nemesis :info :stop-partition nil
+:nemesis :info :stop-partition :network-healed
+```
+
+- you can see when the SpacetimeDB server was partitioned away from client nodes
+  - latency goes up around the partitions
+  - transactions timeout
+  - transactions fail
+
+![plot of partition latency raw](docs/images/partition-latency-raw.png)
+
+The SpacetimeDB server will disconnect clients during a partition:
+
+```log
+# client log
+Connection error: ErrorEvent {
+  type: 'error',
+  defaultPrevented: false,
+  cancelable: false,
+  timeStamp: 55660.684175
+}
+
+# server log
+/SpacetimeDB/crates/core/src/client/client_connection.rs websocket connection aborted for client identity `...` and database identity `...`
+```
+
+SpacetimeDB docs on [Reconnection Behavior](https://spacetimedb.com/docs/clients/connection/#reconnection-behavior):
+> Current Limitation
+>
+>Automatic reconnection behavior is inconsistently implemented across SDKs.
+> If your connection is interrupted, you may need to create a new DbConnection to re-establish connectivity.
+>
+> We recommend implementing reconnection logic in your application if reliable connectivity is critical.
+
+----
+
 ### Pause/Resume
 
 Randomly pause/resume a random set of nodes for a random duration.

@@ -1,0 +1,52 @@
+name: list-append-partition
+
+on:
+  workflow_dispatch:
+    inputs:
+      workloads:
+        description: Workloads (as JSON)
+        type: string
+        required: true
+        default: "[ 'list-append' ]"
+      nemeses:
+        description: "Nemeses (as JSON)"
+        type: string
+        required: true
+        default: "[ 'partition' ]"
+      rates:
+        description: "Rates (as JSON)"
+        type: string
+        required: true
+        default: "[ '100', '500', '1000' ]"
+      time-limits:
+        description: "Time limits (as JSON)"
+        type: string
+        required: true
+        default: "[ '100', '300', '600' ]"
+      concurrency:
+        description: "Concurrency (as JSON)"
+        type: string
+        required: true
+        default: "[ '10', '50', '100' ]"
+      cli-opts:
+        description: "CLI opts string"
+        type: string
+        required: true
+        default: --nodes spacetimedb,n1,n2,n3,n4,n5,n6,n7,n8,n9,n10
+      args:
+        description: "A JSON Map of args (workaround GitHub max inputs)"
+        type: string
+        required: true
+        default: "{'repeat': [ '1' ], 'timeout-minutes': 12 }"
+
+jobs:
+  list-append-partition:
+    uses: nurturenature/jepsen-spacetimedb/.github/workflows/jepsen-test-runner.yml@main
+    with:
+      workloads: ${{ inputs.workloads}}
+      nemeses: ${{ inputs.nemeses }}
+      concurrency: ${{ inputs.concurrency }}
+      rates: ${{ inputs.rates }}
+      time-limits: ${{ inputs.time-limits }}
+      cli-opts: ${{ inputs.cli-opts }}
+      args: ${{ inputs.args }}
