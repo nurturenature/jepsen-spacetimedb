@@ -28,7 +28,8 @@
 
 (def nemeses
   "A collection of valid nemeses."
-  #{:kill-start
+  #{:clock       ; requires real VMs
+    :kill-start
     :network
     :partition
     :pause})
@@ -87,6 +88,7 @@
                   {:db         db
                    :nodes      (:nodes opts)
                    :faults     (:nemesis opts)
+                   :clock      {:targets [nil]}
                    :kill-start {:targets [nil]}
                    :network    {:targets   [nil]
                                 :behaviors [{:delay {}} {:corrupt {}}]}
@@ -110,7 +112,8 @@
                          :logs-spacetimedb   (if (:ignore-logs? opts)
                                                (checker/unbridled-optimism)
                                                (checker/log-file-pattern #"(ERROR)" stdb/log-file-short))
-                         :workload           (:checker workload)})
+                         :workload           (:checker workload)
+                         :clock              (checker/clock-plot)})
             :client    (:client workload)
             :nemesis   (:nemesis nemesis)
             :generator (gen/phases

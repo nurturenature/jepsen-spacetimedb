@@ -90,7 +90,7 @@
 
     db/Kill
     (start!
-      [_this _test node]
+      [_this {:keys [spacetimedb-node] :as _test} node]
       (info "Starting client-node " node)
       (if (cu/daemon-running? pid-file)
         :already-running
@@ -100,7 +100,8 @@
             {:chdir   stdb/client-dir
              :logfile log-file
              :pidfile pid-file
-             :env     {:SPACETIMEDB_DB_NAME stdb/spacetimedb-db-name}}
+             :env     {:SPACETIMEDB_HOST    (str "ws://" spacetimedb-node ":3000")
+                       :SPACETIMEDB_DB_NAME stdb/spacetimedb-db-name}}
             "/usr/bin/npm"
             :run :dev))
           :started)))

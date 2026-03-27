@@ -265,6 +265,45 @@ Jepsen Test log:
 
 ----
 
+### Clock Bump/Strobe/Reset
+
+Randomly
+
+- bump    (adjust the clock by delta milliseconds)
+- strobe  (strobe the time back and forth by delta milliseconds)
+- reset   (reset the clock)
+
+the clocks on a random set of nodes for a random duration.
+Jepsen uses its own `strobe-time.c` and `bump-time.c`.
+
+#### Example of a clock test
+
+Jepsen Test log:
+
+```clj
+;; bump some clocks
+:nemesis :info :bump-clock {"spacetimedb-vm" 161, "n5-vm" -6893, "n1-vm" -379, "n4-vm" 171891}
+
+;; strobe some clocks
+:strobe-clock  {"n3-vm" {:delta 1173, :period 643, :duration 1.9501595709676565},
+                "n1-vm" {:delta 27, :period 3, :duration 25.468379304793743},
+                "spacetimedb-vm" {:delta 14, :period 399, :duration 27.485812529294755},
+                ...}
+
+;; transactions continue to be generated
+
+;; reset some clocks
+:reset-clock   ("n5-vm" "n3-vm")
+```
+
+A plot showing the clock skew on each node during a test:
+
+![plot of clock skew](docs/images/clock-clock-skew.png)
+
+Note that testing clocks requires real VMs and is not available in Docker containers.
+
+----
+
 ## GitHub Actions
 
 - `list-append`
@@ -277,6 +316,11 @@ Jepsen Test log:
   
   - `list-append` with
   - kill/start nemesis
+
+- `list-append-pause`
+  
+  - `list-append` with
+  - pause/resume nemesis
 
 - `list-append-pause`
   
