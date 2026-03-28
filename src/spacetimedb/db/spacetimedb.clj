@@ -4,6 +4,7 @@
             [jepsen
              [db :as db]
              [control :as c]
+             [lazyfs :as lazyfs]
              [util :as u]]
             [jepsen.control.util :as cu]
             [jepsen.db.watchdog :as watchdog]
@@ -31,9 +32,10 @@
 
 (def spacetimedb-files
   "A map of all the SpacetimeDB file locations"
-  {:local-dir  "/root/.local"
-   :config-dir "/root/.config"
-   :binary     "/root/.local/bin/spacetime"})
+  {:config-dir "/root/.config"
+   :local-dir  "/root/.local"
+   :binary     "/root/.local/bin/spacetime"
+   :data-dir   "/root/.local/share/spacetime/data"})
 
 (defn wipe
   "Wipes all local files.
@@ -107,106 +109,127 @@
 
 (def spacetimedb-started? (atom false))
 
-(defn stdb
-  "Local SpacetimeDB database."
-  [version]
-  (reify db/DB
-    (setup!
-      [this test node]
-      (info "Setting up SpacetimeDB " node)
+;; Local SpacetimeDB database.
+(defrecord STDB [version lazyfs]
+  db/DB
+  (setup!
+    [this test node]
+    (info "Setting up SpacetimeDB " node)
 
-      (install-packages)
-      (install-spacetimedb version)
+    (when lazyfs
+      (lazyfs/install!)
+      (lazyfs/mount! lazyfs))
 
-      (db/start! this test node)
-      (u/sleep 1000) ; TODO: sleep for 1s to allow endpoint to come up, should be retry http connection
+    (install-packages)
+    (install-spacetimedb version)
 
-      (configure-test-db)
+    (db/start! this test node)
+    (u/sleep 1000) ; TODO: sleep for 1s to allow endpoint to come up, should be retry http connection
 
-      (swap! spacetimedb-started? (constantly true)))
+    (configure-test-db)
 
-    (teardown!
-      [this test node]
-      (info "Tearing down SpacetimeDB " node)
-      (db/kill! this test node)
+    (swap! spacetimedb-started? (constantly true)))
 
-      (if (:no-wipe? test)
-        (info "--no-wipe? is set, setup files are preserved and not deleted")
+  (teardown!
+    [this test node]
+    (info "Tearing down SpacetimeDB " node)
+    (db/kill! this test node)
+
+    (if (:no-wipe? test)
+      (info "--no-wipe? is set, setup files are preserved and not deleted")
+      (do
+        (when lazyfs
+          (lazyfs/umount! lazyfs))
         (c/su
-         (wipe)))
+         (wipe))))
 
-      (swap! spacetimedb-started? (constantly false)))
+    (swap! spacetimedb-started? (constantly false)))
 
-    ; SpacetimeDB doesn't have `primaries`.
-    db/Primary
-    (primaries
-      [_db _test]
-      nil)
+  ;; SpacetimeDB doesn't have `primaries`.
+  db/Primary
+  (primaries
+    [_db _test]
+    nil)
 
-    (setup-primary!
-      [_db _test _node])
+  (setup-primary!
+    [_db _test _node])
 
-    db/LogFiles
-    (log-files
-      [_db _test _node]
-      {log-file log-file-short})
+  db/LogFiles
+  (log-files
+    [_db _test _node]
+    (merge
+     {log-file log-file-short}
+     (when lazyfs
+       {(:log-file lazyfs) "lazyfs.log"})))
 
-    db/Kill
-    (start!
-      [_this _test _node]
-      (if (cu/daemon-running? pid-file)
-        :already-running
-        (do
-          (c/su
-           (cu/start-daemon!
-            {:chdir   jepsen-dir
-             :logfile log-file
-             :pidfile pid-file}
-            (:binary spacetimedb-files)
-            :start
-            :--pg-port pg-port
-            :--non-interactive))
-          :started)))
+  db/Kill
+  (start!
+    [_this _test _node]
+    (if (cu/daemon-running? pid-file)
+      :already-running
+      (do
+        (c/su
+         (cu/start-daemon!
+          {:chdir   jepsen-dir
+           :logfile log-file
+           :pidfile pid-file}
+          (:binary spacetimedb-files)
+          :start
+          :--pg-port pg-port
+          :--non-interactive))
+        :started)))
 
-    (kill!
-      [_this _test _node]
+  (kill!
+    [_this _test _node]
       ; TODO: understand why sporadic Exception with exit code of 137 when using Docker,
       ;       for now, retry 
-      (u/timeout 10000
-                 :timed-out
-                 (do
-                   (c/su
-                    (u/retry 1 (cu/grepkill! spacetimedb-ps-name)))
-                   :killed)))
+    (let [result (u/timeout 10000
+                            :timed-out
+                            (do
+                              (c/su
+                               (u/retry 1 (cu/grepkill! spacetimedb-ps-name)))
+                              :killed))]
+      (when lazyfs
+        (info "Losing un-fsync'd writes for dir: " (:dir lazyfs))
+        (lazyfs/lose-unfsynced-writes! lazyfs))
+      result))
 
-    db/Pause
-    (pause!
-      [_this _test _node]
+  db/Pause
+  (pause!
+    [_this _test _node]
       ; TODO: understand why sporadic Exception with exit code of 137 when using Docker,
       ;       for now, retry
-      (u/timeout 10000
-                 :timed-out
-                 (do
-                   (c/su
-                    (u/retry 1 (cu/grepkill! :stop spacetimedb-ps-name)))
-                   :paused)))
+    (u/timeout 10000
+               :timed-out
+               (do
+                 (c/su
+                  (u/retry 1 (cu/grepkill! :stop spacetimedb-ps-name)))
+                 :paused)))
 
-    (resume!
-      [_this _test _node]
+  (resume!
+    [_this _test _node]
       ; TODO: understand why sporadic Exception with exit code of 137 when using Docker,
       ;       for now, retry 
-      (u/timeout 10000
-                 :timed-out
-                 (do
-                   (c/su
-                    (u/retry 1 (cu/grepkill! :cont spacetimedb-ps-name)))
-                   :resumed)))))
+    (u/timeout 10000
+               :timed-out
+               (do
+                 (c/su
+                  (u/retry 1 (cu/grepkill! :cont spacetimedb-ps-name)))
+                 :resumed))))
+(defn stdb
+  "Takes a version and a lazyfs? flag.
+   Installs and uses that version of SpacetimeDB.
+   When lazyfs?, the database's data dir will be a lazyfs dir."
+  [version lazyfs?]
+  (let [lazyfs (when lazyfs?
+                 (lazyfs/lazyfs {:dir (:data-dir spacetimedb-files)}))]
+    (STDB. version lazyfs)))
 
 (defn watched-stdb
   "A stdb with a watchdog to monitor and restart."
-  [version]
+  [version lazyfs?]
   (let [opts {:running? (fn running? [_test _node]
                           (cu/daemon-running? pid-file))
               :interval 1000}
-        stdb (stdb version)]
+        stdb (stdb version lazyfs?)]
     (watchdog/db opts stdb)))

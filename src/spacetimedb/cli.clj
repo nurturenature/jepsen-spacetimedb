@@ -67,10 +67,11 @@
 
 (defn test-name
   "Given opts, returns a meaningful test name."
-  [{:keys [concurrency nemesis nodes rate spacetimedb-node time-limit workload] :as _opts}]
+  [{:keys [concurrency lazyfs? nemesis nodes rate spacetimedb-node time-limit workload] :as _opts}]
   (let [nodes (into #{} nodes)]
     (str (name workload)
          "-" (str/join "," (map name nemesis))
+         (when lazyfs? "-lazyfs")
          "-" (->> spacetimedb-node
                   (disj nodes)
                   (count)) "c" ; SpacetimeDB server doesn't count as a client
@@ -174,6 +175,11 @@
     :default  4
     :parse-fn parse-long
     :validate [pos? "Must be a positive integer."]]
+
+   [nil "--lazyfs? BOOLEAN" "Mount data dir in a lazy filesystem that can lose non fsync'd writes?"
+    :default  false
+    :parse-fn parse-boolean
+    :validate [boolean? "Must be a boolean."]]
 
    [nil "--max-txn-length NUM" "Maximum number of operations per txn."
     :default  4
