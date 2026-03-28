@@ -190,8 +190,11 @@
                                (u/retry 1 (cu/grepkill! spacetimedb-ps-name)))
                               :killed))]
       (when lazyfs
-        (info "Losing un-fsync'd writes for dir: " (:dir lazyfs))
-        (lazyfs/lose-unfsynced-writes! lazyfs))
+        ; may be tearing down before/without setup!, e.g. beginning of test,
+        ; so lazyfs dir may not exist yet
+        (if (cu/exists? (:dir lazyfs))
+          (lazyfs/lose-unfsynced-writes! lazyfs)
+          (info "directory " (:dir lazyfs) " does not exist so un-fsync'd writes cannot be lost")))
       result))
 
   db/Pause
