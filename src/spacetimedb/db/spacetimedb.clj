@@ -37,12 +37,18 @@
    :binary     "/root/.local/bin/spacetime"
    :data-dir   "/root/.local/share/spacetime/data"})
 
-(defn wipe
+(def misc-files
+  "A map of misc file locations."
+  {:npm "/root/.npm"})
+
+(defn wipe-installed-files
   "Wipes all local files.
    Assumes on node and privs for file deletion."
   []
-  (c/exec :rm :-rf (vals spacetimedb-files))
-  (c/exec :rm :-rf jepsen-dir))
+  (c/exec :rm :-rf
+          (vals spacetimedb-files)
+          (vals misc-files)
+          jepsen-dir))
 
 (defn install-nodejs
   []
@@ -135,13 +141,10 @@
     (info "Tearing down SpacetimeDB " node)
     (db/kill! this test node)
 
-    (if (:no-wipe? test)
-      (info "--no-wipe? is set, setup files are preserved and not deleted")
-      (do
-        (when lazyfs
-          (lazyfs/umount! lazyfs))
-        (c/su
-         (wipe))))
+    (when lazyfs
+      (lazyfs/umount! lazyfs))
+    (c/su
+     (wipe-installed-files))
 
     (swap! spacetimedb-started? (constantly false)))
 

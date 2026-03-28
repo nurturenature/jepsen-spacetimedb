@@ -206,11 +206,6 @@
     :parse-fn parse-long
     :validate [pos? "Must be a positive number."]]
 
-   [nil "--no-wipe? BOOLEAN" "Do not wipe files when tearing down nodes?"
-    :default false
-    :parse-fn parse-boolean
-    :validate [boolean? "Must be a boolean."]]
-
    ["-r" "--rate HZ" "Approximate request rate, in hz"
     :default 100
     :parse-fn parse-long

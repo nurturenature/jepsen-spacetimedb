@@ -22,11 +22,11 @@
   [node]
   (str "http://" node ":3000"))
 
-(defn wipe
+(defn wipe-installed-files
   "Wipes all local files.
    Assumes on node and privs for file deletion."
   []
-  (c/exec :rm :-rf stdb/jepsen-dir))
+  (c/exec :rm :-rf stdb/jepsen-dir "/root/.npm"))
 
 (defn install-packages
   []
@@ -69,10 +69,8 @@
       (info "Tearing down client-node " node)
       (db/kill! this test node)
 
-      (if (:no-wipe? test)
-        (info "--no-wipe? is set, setup files are preserved and not deleted")
-        (c/su
-         (wipe))))
+      (c/su
+       (wipe-installed-files)))
 
     ; client-node doesn't have `primaries`.
     db/Primary
