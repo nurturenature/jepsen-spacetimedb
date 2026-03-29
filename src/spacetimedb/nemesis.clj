@@ -105,14 +105,14 @@
       (net/shape! net test nil nil)
       this)
 
-    (invoke! [_this {:keys [net spacetimedb] :as test} {:keys [f value] :as op}]
+    (invoke! [_this {:keys [net spacetimedb-node] :as test} {:keys [f value] :as op}]
       (let [result (case f
                      :disrupt-network (let [[targets behaviors] value
                                             ; target nodes per db-spec
                                             ; always include SpacetimeDB node
                                             targets (->> targets
                                                          (nc/db-nodes test db)
-                                                         (into #{spacetimedb}))]
+                                                         (into #{spacetimedb-node}))]
                                         (net/shape! net test targets behaviors))
                      :heal-network    (net/shape! net test nil nil))]
         (assoc op :value result)))

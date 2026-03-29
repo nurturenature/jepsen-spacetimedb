@@ -174,7 +174,8 @@ SpacetimeDB docs on [Reconnection Behavior](https://spacetimedb.com/docs/clients
 >
 > We recommend implementing reconnection logic in your application if reliable connectivity is critical.
 
-So the tests use Jepsen's watchdog functionality to periodically check the SpacetimeDB and client node processes for liveness, restarting as necessary:
+The tests are run with SpacetimeDB's default websocket configuration.
+Jepsen's watchdog functionality is needed to periodically check the SpacetimeDB and client node processes for liveness, restarting as necessary:
 
 ```clj
 (defn watched-stdb
@@ -192,9 +193,46 @@ INFO [jepsen watchdog n8] spacetimedb.db.client-node: Starting client-node  n8
 
 ----
 
+### Network
+
+Networks often glitch and recover and ....
+
+Use `tc-netem` to randomly disrupt the network between SpacetimeDB clients and the database server.
+
+#### Example of a network test
+
+Jepsen Test log:
+
+```clj
+;; disrupt traffic between nodes by corrupting 20% of the packets with a 75% correlation
+:nemesis :info :disrupt-network [:shaped {"n1" #{"n5" "n4" "spacetimedb"}, ..., "spacetimedb" #{"n2" "n5" "n1" "n4" "n3"}}
+                                 :netem [:corrupt :20% :75%]]
+
+;; transactions continue to be generated
+
+;; disrupt traffic between nodes by delaying for 50ms, with a 10ms jitter, a 25% correlation, and a normal distribution
+:nemesis :info :disrupt-network [:shaped {"n1" #{"n5" "spacetimedb" "n3"}, ..., "spacetimedb" #{"n2" "n5" "n1" "n4" "n3"}}
+                                 :netem [:delay :50ms :10ms :25% :distribution :normal]]
+
+;; transactions continue to be generated
+
+;; heal network
+:nemesis :info :heal-network [:reliable {"n1" nil, ..., "spacetimedb" nil}]
+```
+
+- you can see when the SpacetimeDB server and client network were subject to disruption
+  - latency goes up
+  - then recovers
+  - then ...
+
+![plot of network latency raw](docs/images/network-latency-raw.png)
+
+----
+
 ### Pause/Resume
 
 Randomly pause/resume a random set of nodes for a random duration.
+
 Act on the SpacetimeDB or client's process with:
 
 ```clj
@@ -228,6 +266,7 @@ Jepsen Test log:
 ### Kill/Start
 
 Randomly kill/start a random set of nodes for a random duration.
+
 Act on the SpacetimeDB or client's process with:
 
 ```clj
@@ -317,10 +356,15 @@ Note that testing clocks requires real VMs and is not available in Docker contai
   - `list-append` with
   - kill/start nemesis
 
-- `list-append-pause`
+- `list-append-network`
   
   - `list-append` with
-  - pause/resume nemesis
+  - network nemesis
+
+- `list-append-partition`
+  
+  - `list-append` with
+  - partition nemesis
 
 - `list-append-pause`
   
