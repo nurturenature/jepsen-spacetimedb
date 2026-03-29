@@ -18,7 +18,7 @@ RUN lein deps
 WORKDIR /jepsen/jepsen-spacetimedb
 RUN rm -rf jepsen-spacetimedb
 
-# can't use COPY --parents as GitHub actions don't support --parents
+# can't use COPY --parents as GitHub Actions do not support --parents
 WORKDIR /jepsen/jepsen-spacetimedb
 RUN git clone -b main --depth 1 --single-branch https://github.com/nurturenature/jepsen-spacetimedb.git
 

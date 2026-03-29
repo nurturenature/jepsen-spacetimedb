@@ -2,7 +2,7 @@
 set -e
 
 # use docker-build.sh built local images
-# export JEPSEN_REGISTRY="ghcr.io/nurturenature/jepsen-docker/"
+# export JEPSEN_REGISTRY="ghcr.io/nurturenature/jepsen-spacetimedb/"
 
 docker compose \
        -f jepsen-compose.yaml \

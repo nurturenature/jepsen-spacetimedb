@@ -1,0 +1,83 @@
+name: Publish Jepsen Images for SpacetimeDB
+
+on:
+  schedule:
+    - cron: "15 0 * * 0" # every Sunday at 00:15
+  workflow_dispatch:
+
+env:
+  GH_TOKEN: ${{ github.token }}
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  publish-jepsen-images-for-spacetimedb:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: checkout jepsen-spacetimedb
+        uses: actions/checkout@v6
+
+      - name: Build Jepsen Images
+        run: |
+          cd $GITHUB_WORKSPACE/docker
+          ./docker-build.sh
+
+      - name: List Docker Images
+        run: |
+          echo Built docker images:
+          docker images
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag Images
+        run: |
+          docker tag jepsen-setup       ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/jepsen-setup
+          docker tag jepsen-node        ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/jepsen-node
+          docker tag jepsen-spacetimedb ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/jepsen-spacetimedb
+          docker tag jepsen-control     ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/jepsen-control
+          echo Tagged docker images:
+          docker images
+
+      - name: Push Images
+        run: |
+          docker push -q ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/jepsen-setup
+          docker push -q ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/jepsen-node
+          docker push -q ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/jepsen-spacetimedb
+          docker push -q ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/jepsen-control
+
+      - name: Delete Old jepsen-setup Images
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: "jepsen-spacetimedb/jepsen-setup"
+          package-type: "container"
+          delete-only-untagged-versions: "true"
+
+      - name: Delete Old jepsen-node Images
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: "jepsen-spacetimedb/jepsen-node"
+          package-type: "container"
+          delete-only-untagged-versions: "true"
+
+      - name: Delete Old jepsen-spacetimedb Images
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: "jepsen-spacetimedb/jepsen-spacetimedb"
+          package-type: "container"
+          delete-only-untagged-versions: "true"
+
+      - name: Delete Old jepsen-control Images
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: "jepsen-spacetimedb/jepsen-control"
+          package-type: "container"
+          delete-only-untagged-versions: "true"

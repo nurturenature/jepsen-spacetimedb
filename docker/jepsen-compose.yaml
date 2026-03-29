@@ -30,6 +30,13 @@ x-node: &default-node
     setup:
       condition: service_completed_successfully
 
+x-spacetimedb: &spacetimedb-node
+  <<: *defaults
+  image: ${JEPSEN_REGISTRY:-}jepsen-spacetimedb
+  depends_on:
+    setup:
+      condition: service_completed_successfully
+
 volumes:
   jepsen-shared:
 
@@ -76,7 +83,7 @@ services:
         condition: service_healthy
 
   spacetimedb:
-    <<: *default-node
+    <<: *spacetimedb-node
     container_name: spacetimedb
     hostname: spacetimedb
 
