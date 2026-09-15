@@ -116,7 +116,7 @@
   db/Primary
   (primaries
     [_db _test]
-    nil)
+    #{})
 
   (setup-primary!
     [_db _test _node])

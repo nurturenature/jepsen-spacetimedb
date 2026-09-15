@@ -294,13 +294,9 @@ We'll use the `LazyFS` tool
 to simulated a power glitch
 
 - let db do some work, i.e. writes
-- `checkpoint` the `lazyfs` filesystem
-  - maybe triggered by application, os, etc.
-  - write un-fsync'd writes to the underlying filesystem
-- let db do some work, i.e. writes
 - 🌩️ power glitch
   - kill the db's process
-  - `lose-unfsynced-writes`
+  - `lose-unfsynced-writes` with LazyFS
 - ☀️ power normal
   - attempt to restart the db
 

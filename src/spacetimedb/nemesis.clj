@@ -213,27 +213,9 @@
    "
   [{:keys [db faults interval] :as _opts}]
   (when (contains? faults :power-glitch)
-    (let [gen        (->> (gen/phases
-                           ; let db do work, i.e. writes
-                           {:type  :info
-                            :f     :noop
-                            :value nil}
-
-                           ; persist writes so far
-                           {:type  :info
-                            :f     :checkpoint
-                            :value nil}
-
-                           (gen/cycle
-                            [; let db do work, i.e. writes
-                             {:type  :info
-                              :f     :noop
-                              :value nil}
-
-                             ; power glitch
-                             {:type  :info
-                              :f     :power-glitch
-                              :value nil}]))
+    (let [gen        (->> {:type  :info
+                           :f     :power-glitch
+                           :value nil}
                           (gen/stagger (or interval nc/default-interval)))
           final-gen  {:type  :info
                       :f     :start-spacetimedb

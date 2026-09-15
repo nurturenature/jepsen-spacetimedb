@@ -235,7 +235,7 @@
    [nil "--lazyfs-behavior STORAGE-FAULT" "Storage fault to use with lazyfs."
     :default  :unsynced-data-report
     :parse-fn keyword
-    :validate [lazyfs/lazyfs-commands (str "Must be one of: " lazyfs/lazyfs-commands)]]
+    :validate [lazyfs/lazyfs-commands (cli/one-of lazyfs/lazyfs-commands)]]
 
    [nil "--lazyfs-targets NODES" "List of nodes to target for storage faults using lazyfs."
     :default  [stdb/spacetimedb-host-name]
