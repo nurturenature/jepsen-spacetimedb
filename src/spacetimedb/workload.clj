@@ -25,13 +25,13 @@
    happen in a transaction in a Procedure.
    
    [[spacetimedb.client/dispatch-by-f]] will map op to uri for this workload."
-  [{:keys [key-count lazyfs? min-txn-length max-txn-length max-writes-per-key spacetimedb-version universal-timeout] :as opts}]
+  [{:keys [key-count lazyfs? min-txn-length max-txn-length max-writes-per-key universal-timeout] :as opts}]
   (assert (and key-count min-txn-length max-txn-length max-writes-per-key)
           (str "opts must specify {key-count min-txn-length max-txn-length max-writes-per-key}: " opts))
   (let [watchdog-timeout (+ 1000 universal-timeout)
         stdb     (if lazyfs?
-                   (stdb/lazyfs-stdb spacetimedb-version)
-                   (stdb/stdb        spacetimedb-version))
+                   (stdb/lazyfs-stdb)
+                   (stdb/stdb))
         stdb     (stdb/watched-stdb stdb watchdog-timeout)
         cndb     (client-node/client-node)
         cndb     (client-node/watched-client-node cndb watchdog-timeout)

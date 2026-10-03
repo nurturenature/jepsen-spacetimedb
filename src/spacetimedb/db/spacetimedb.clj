@@ -71,53 +71,54 @@
   (install-nodejs))
 
 (defn install-repository
-  "Installs or updates GitHub repository in current directory."
-  []
+  "Installs or updates GitHub repository in current directory.
+   `force-reinstall-repository?` deletes repo forcing a full re-installation."
+  [force-reinstall-repository?]
+  (when force-reinstall-repository?
+    (c/exec :rm :-rf "jepsen-spacetimedb"))
+
   (if (cu/exists? "jepsen-spacetimedb/.git")
     (do
       (info "repository jepsen-spacetimedb already exists, pulling")
       (c/cd "jepsen-spacetimedb"
-            (c/exec :git :pull :--rebase)))
+            (c/exec :git :pull)))
     (do
       (info "repository jepsen-spacetimedb does not exist, cloning")
       (c/exec :git :clone :-b :main :--depth :1 :--single-branch "https://github.com/nurturenature/jepsen-spacetimedb.git"))))
 
 (defn install-spacetimedb
-  [version install-spacetimedb?]
+  [force-reinstall-spacetimedb?]
   (c/su
+   (when force-reinstall-spacetimedb?
+     ; remove any old files
+     (doseq [file-or-dir (vals spacetimedb-files)]
+       (u/meh  ; data dir may already be lazyfs mounted so undeletable, so meh
+        (c/exec :rm :-rf file-or-dir))))
+
    (c/exec :mkdir :--parents jepsen-dir)
 
-   (if (or install-spacetimedb?
-           (not (cu/exists? spacetimedb-binary)))
+   (if (not (cu/exists? spacetimedb-binary))
      (do
-       (info "downloading and installing SpacetimeDB" version)
+       (info "downloading and installing latest SpacetimeDB")
        (c/cd jepsen-dir
-             ; remove any old files
-             (doseq [file-or-dir (vals spacetimedb-files)]
-               (u/meh  ; data dir may already be lazyfs mounted so undeletable, so meh
-                (c/exec :rm :-rf file-or-dir)))
-
              ; download and install binary
              (c/exec :curl :-sSf :--output :install-spacetimedb.sh "https://install.spacetimedb.com")
              (c/exec :chmod :a+x :install-spacetimedb.sh)
              (c/exec "./install-spacetimedb.sh" :--yes)
 
-             ; explicit version
-             (c/exec spacetimedb-binary :version :use version)
-             (c/exec spacetimedb-binary :version :list)
-
              ; configuring should also create config ~/.config/spacetime/cli.toml
              (c/exec spacetimedb-binary :server :set-default :local)))
      (do
-       (info "using and clearing already installed SpacetimeDB")
-       (c/exec spacetimedb-binary :server :clear :--yes)))))
+       (info "SpacetimeDB already installed, clearing and upgrading")
+       (c/exec spacetimedb-binary :server :clear :--yes)
+       (c/exec spacetimedb-binary :version :upgrade)))))
 
 (defn configure-test-db
   "Configure SpacetimeDB for a test-db.
    Expects SpacetimeDB to be started."
-  []
+  [force-reinstall-repository?]
   (c/cd jepsen-dir
-        (install-repository))
+        (install-repository force-reinstall-repository?))
 
   ; build and publish our SpacetimeDB modules
   (c/cd client-dir
@@ -154,14 +155,14 @@
 
 ;; Local SpacetimeDB database.
 ;; lazyfs-map may be nil
-(defrecord STDB [version lazyfs-map]
+(defrecord STDB [lazyfs-map]
   db/DB
   (setup!
-    [this {:keys [install-spacetimedb?] :as test} node]
+    [this {:keys [force-reinstall-repository? force-reinstall-spacetimedb?] :as test} node]
     (info "setting up SpacetimeDB" node)
 
     (install-packages)
-    (install-spacetimedb version install-spacetimedb?)
+    (install-spacetimedb force-reinstall-spacetimedb?)
 
     ; NOTE: must install SpacetimeDB before
     ; mounting lazyfs and starting the db
@@ -173,7 +174,7 @@
 
     (db/start! this test node)
 
-    (configure-test-db)
+    (configure-test-db force-reinstall-repository?)
 
     (let [alive? (u/timeout 10000 ::timed-out
                             (while (not (spacetimedb-alive? test))
@@ -232,6 +233,7 @@
            :pidfile pid-file}
           spacetimedb-binary
           :start
+          :--data-dir spacetimedb-data-dir
           :--pg-port pg-port
           :--non-interactive))
         :started)))
@@ -253,19 +255,17 @@
     :resumed))
 
 (defn stdb
-  "Takes a version.
-   Installs and uses that version of SpacetimeDB."
-  [version]
-  (STDB. version nil))
+  "Installs and uses the latest version of SpacetimeDB."
+  []
+  (STDB. nil))
 
 (defn lazyfs-stdb
-  "Takes a version.
-   Installs and uses that version of SpacetimeDB.
+  "Installs and uses the latest version of SpacetimeDB.
    Data directory is mounted on a lazyfs."
-  [version]
+  []
   (let [lazyfs-map {:dir spacetimedb-data-dir :log-file log-lazyfs}
         lazyfs-map (lazyfs/lazyfs lazyfs-map)]
-    (STDB. version lazyfs-map)))
+    (STDB. lazyfs-map)))
 
 (defn watched-stdb
   "Wraps given stdb with a [[jepsen.db.watchdog]] that monitors and restarts every interval."

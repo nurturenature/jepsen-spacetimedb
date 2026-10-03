@@ -41,15 +41,15 @@
   (stdb/install-nodejs))
 
 (defn install-client
-  "install-client? will force a full installation."
-  [install-client?]
-  (when install-client?
+  "force-reinstall-repository? will force a full installation."
+  [force-reinstall-repository?]
+  (when force-reinstall-repository?
     (c/exec :rm :-rf stdb/jepsen-dir))
 
   (c/exec :mkdir :--parents stdb/jepsen-dir)
 
   (c/cd stdb/jepsen-dir
-        (stdb/install-repository))
+        (stdb/install-repository force-reinstall-repository?))
 
   ; as SpacetimeDB client is TypeScript, will need npm modules
   (c/cd stdb/client-dir
@@ -70,11 +70,11 @@
 (defrecord CLIENT_NODE []
   db/DB
   (setup!
-    [this {:keys [install-client? universal-timeout] :as test} node]
+    [this {:keys [force-reinstall-repository? universal-timeout] :as test} node]
     (info "setting up client-node" node)
     (install-packages)
 
-    (install-client install-client?)
+    (install-client force-reinstall-repository?)
 
     ; SpacetimeDB must be started to continue
     (u/await-fn (fn waiting-spacetimedb []

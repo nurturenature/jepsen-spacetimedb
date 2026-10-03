@@ -190,12 +190,12 @@
     :parse-fn parse-boolean
     :validate [boolean? "Must be a boolean."]]
 
-   [nil "--install-client? BOOLEAN" "Forces re-installation of client."
+   [nil "--force-reinstall-repository? BOOLEAN" "Forces re-installation of repository."
     :default  false
     :parse-fn parse-boolean
     :validate [boolean? "Must be a boolean."]]
 
-   [nil "--install-spacetimedb? BOOLEAN" "Forces re-installation of SpacetimeDB."
+   [nil "--force-reinstall-spacetimedb? BOOLEAN" "Forces re-installation of SpacetimeDB."
     :default  false
     :parse-fn parse-boolean
     :validate [boolean? "Must be a boolean."]]
@@ -262,11 +262,6 @@
 
    [nil "--spacetimedb-node NODE" "Node to install SpacetimeDB on."
     :default  stdb/spacetimedb-host-name
-    :parse-fn str
-    :validate [string? "Must be a String."]]
-
-   [nil "--spacetimedb-version VERSION" "Version of SpacetimeDB to install."
-    :default  "2.10.0"
     :parse-fn str
     :validate [string? "Must be a String."]]
 
