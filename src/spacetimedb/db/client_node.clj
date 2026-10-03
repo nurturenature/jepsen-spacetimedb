@@ -10,6 +10,7 @@
             [jepsen.db.watchdog :as watchdog]
             [jepsen.os.debian :as debian]
             [slingshot.slingshot :refer [throw+]]
+            [spacetimedb.util :refer [killall]]
             [spacetimedb.db.spacetimedb :as stdb]))
 
 (def pid-file (str stdb/jepsen-dir "/client-node.pid"))
@@ -145,37 +146,19 @@
 
   (kill!
     [_this _test _node]
-    ; TODO: understand why sporadic Exception with exit code of 137 when using Docker,
-    ;       for now, retry
-    (u/timeout 10000
-               :timed-out
-               (do
-                 (c/su
-                  (u/retry 1 (cu/grepkill! client-node-ps-name)))
-                 :killed)))
+    (killall client-node-ps-name)
+    :killed)
 
   db/Pause
   (pause!
     [_this _test _node]
-    ; TODO: understand why sporadic Exception with exit code of 137 when using Docker,
-    ;       for now, retry
-    (u/timeout 10000
-               :timed-out
-               (do
-                 (c/su
-                  (u/retry 1 (cu/grepkill! :stop client-node-ps-name)))
-                 :paused)))
+    (killall :STOP client-node-ps-name)
+    :paused)
 
   (resume!
     [_this _test _node]
-    ; TODO: understand why sporadic Exception with exit code of 137 when using Docker,
-    ;       for now, retry 
-    (u/timeout 10000
-               :timed-out
-               (do
-                 (c/su
-                  (u/retry 1 (cu/grepkill! :cont client-node-ps-name)))
-                 :resumed))))
+    (killall :CONT client-node-ps-name)
+    :resumed))
 
 (defn client-node
   "A client-node DB."

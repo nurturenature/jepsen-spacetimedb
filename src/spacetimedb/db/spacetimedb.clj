@@ -9,7 +9,8 @@
             [jepsen.control.util :as cu]
             [jepsen.db.watchdog :as watchdog]
             [jepsen.os.debian :as debian]
-            [slingshot.slingshot :refer [throw+]]))
+            [slingshot.slingshot :refer [throw+]]
+            [spacetimedb.util :refer [killall]]))
 
 (def spacetimedb-host-name
   "spacetimedb")
@@ -236,39 +237,20 @@
         :started)))
 
   (kill!
-    [_this {:keys [kill-signal] :as _test} _node]
-    (assert (#{9 15} kill-signal))
-   ; TODO: understand why sporadic Exception with exit code of 137 when using Docker,
-    ;       for now, retry 
-    (u/timeout 10000
-               :timed-out
-               (do
-                 (c/su
-                  (u/retry 1 (cu/grepkill! kill-signal spacetimedb-ps-name)))
-                 (get {9 :killed 15 :terminated} kill-signal))))
+    [_this _test _node]
+    (killall spacetimedb-ps-name)
+    :killed)
 
   db/Pause
   (pause!
     [_this _test _node]
-    ; TODO: understand why sporadic Exception with exit code of 137 when using Docker,
-    ;       for now, retry
-    (u/timeout 10000
-               :timed-out
-               (do
-                 (c/su
-                  (u/retry 1 (cu/grepkill! :stop spacetimedb-ps-name)))
-                 :paused)))
+    (killall :STOP spacetimedb-ps-name)
+    :paused)
 
   (resume!
     [_this _test _node]
-    ; TODO: understand why sporadic Exception with exit code of 137 when using Docker,
-    ;       for now, retry 
-    (u/timeout 10000
-               :timed-out
-               (do
-                 (c/su
-                  (u/retry 1 (cu/grepkill! :cont spacetimedb-ps-name)))
-                 :resumed))))
+    (killall :CONT spacetimedb-ps-name)
+    :resumed))
 
 (defn stdb
   "Takes a version.

@@ -222,11 +222,6 @@
     :parse-fn parse-long
     :validate [pos? "Must be a positive integer."]]
 
-   [nil "--kill-signal NUMBER" "Signal to use in DB/kill!."
-    :default  9
-    :parse-fn parse-long
-    :validate [#{9 15} "Must be 9 or 15."]]
-
    [nil "--lazyfs? BOOLEAN" "Mount data dir in a lazy filesystem that can lose non fsync'd writes?"
     :default  false
     :parse-fn parse-boolean
