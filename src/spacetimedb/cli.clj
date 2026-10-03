@@ -109,8 +109,7 @@
                                 :behaviors [{:delay {}} {:corrupt {}}]}
                    :partition  {:targets [:majority]}
                    :pause      {:targets [nil]}
-                   ; for :power-glitch, just --nemesis power-glitch 
-                   })
+                   :power-glitch {}})
         quiesce-timeout (-> universal-timeout (* 2) (quot 1000))]
     (merge tests/noop-test
            opts
@@ -130,6 +129,9 @@
                          :logs-spacetimedb   (if (:ignore-logs? opts)
                                                (checker/unbridled-optimism)
                                                (checker/log-file-pattern #"(ERROR)" stdb/log-file-short))
+                         :logs-lazyfs        (if (:lazyfs? opts)
+                                               (checker/log-file-pattern #"is not fully synced" stdb/log-lazyfs-short)
+                                               (checker/unbridled-optimism))
                          :workload           (:checker workload)
                          :final-txns         (if check-final-txns?
                                                (stdb-checker/final-txn-ok)
