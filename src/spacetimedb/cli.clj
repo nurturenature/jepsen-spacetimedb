@@ -66,19 +66,19 @@
        (into #{})))
 
 (defn parse-keywords-spec
-  "Takes a comma-separated string of models and returns a collection of consistency models."
+  "Takes a comma-separated string and returns a vector of keywords."
   [spec]
   (->> (str/split spec #",")
        (mapv keyword)))
 
 (defn test-name
   "Given opts, returns a meaningful test name."
-  [{:keys [consistency-models concurrency lazyfs-behavior nemesis nodes rate spacetimedb-node time-limit workload] :as _opts}]
+  [{:keys [consistency-models concurrency lazyfs-behaviors nemesis nodes rate spacetimedb-node time-limit workload] :as _opts}]
   (let [nodes   (into #{} nodes)
         nemesis (into (sorted-set) nemesis)]
     (str (name workload)
          "-" (str/join "," (map name nemesis))
-         (when (contains? nemesis :lazyfs) (str "-" (name lazyfs-behavior)))
+         (when (contains? nemesis :lazyfs) (str "-" (->> lazyfs-behaviors (map name) (str/join ","))))
          "-" (->> spacetimedb-node
                   (disj nodes)
                   (count)) "c" ; SpacetimeDB server doesn't count as a client
@@ -89,7 +89,7 @@
 
 (defn spacetimedb-test
   "Given options from the CLI, constructs a test map."
-  [{:keys [check-final-txns? lazyfs-behavior lazyfs-targets universal-timeout] :as opts}]
+  [{:keys [check-final-txns? lazyfs? lazyfs-behaviors lazyfs-targets universal-timeout] :as opts}]
   (let [workload-name (:workload opts)
         workload ((workload/workloads workload-name) opts)
         db       (:db workload)
@@ -102,9 +102,9 @@
                                      :corruptions [{:type :bitflip
                                                     :file stdb/spacetimedb-data-dir
                                                     :probability {:distribution :one-of :values [1e-3 1e-4 1e-5]}}]}
-                   :kill-start {:targets [nil]}
-                   :lazyfs     {:targets  lazyfs-targets
-                                :behavior lazyfs-behavior}
+                   :kill-start {:targets [[stdb/spacetimedb-host-name] nil]} ; favor killing the server node
+                   :lazyfs     {:targets   lazyfs-targets
+                                :behaviors lazyfs-behaviors}
                    :network    {:targets   [nil]
                                 :behaviors [{:delay {}} {:corrupt {}}]}
                    :partition  {:targets [:majority]}
@@ -129,7 +129,7 @@
                          :logs-spacetimedb   (if (:ignore-logs? opts)
                                                (checker/unbridled-optimism)
                                                (checker/log-file-pattern #"(ERROR)" stdb/log-file-short))
-                         :logs-lazyfs        (if (:lazyfs? opts)
+                         :logs-lazyfs        (if lazyfs?
                                                (checker/log-file-pattern #"is not fully synced" stdb/log-lazyfs-short)
                                                (checker/unbridled-optimism))
                          :workload           (:checker workload)
@@ -222,10 +222,11 @@
     :parse-fn parse-boolean
     :validate [boolean? "Must be a boolean."]]
 
-   [nil "--lazyfs-behavior STORAGE-FAULT" "Storage fault to use with lazyfs."
-    :default  :unsynced-data-report
-    :parse-fn keyword
-    :validate [lazyfs/lazyfs-commands (cli/one-of lazyfs/lazyfs-commands)]]
+   [nil "--lazyfs-behaviors STORAGE-FAULTS" "Collection of storage faults to use with lazyfs."
+    :default  lazyfs/lazyfs-commands
+    :parse-fn parse-keywords-spec
+    :validate [(partial every? lazyfs/lazyfs-commands)
+               (str "Behaviors must be " lazyfs/lazyfs-commands ".")]]
 
    [nil "--lazyfs-targets NODES" "List of nodes to target for storage faults using lazyfs."
     :default  [stdb/spacetimedb-host-name]

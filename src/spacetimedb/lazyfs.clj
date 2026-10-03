@@ -5,6 +5,7 @@
              [generator :as gen]
              [lazyfs :as lazyfs]
              [nemesis :as nemesis]]
+            [jepsen.random :as random]
             [jepsen.nemesis.combined :as nc]))
 
 (def lazyfs-commands
@@ -49,25 +50,30 @@
    Opts:
    ```clj
    {:lazyfs
-    {:targets  sequence-nodes    ; The nodes to target
-     :behavior lazyfs-command}}  ; lose-unfsynced-writes, unsynced-data-report
+    {:targets   sequence-nodes     ; nodes to target
+     :behaviors lazyfs-behaviors}} ; collection of behaviors
    ```"
   [{:keys [db faults interval lazyfs] :as _opts}]
   (when (contains? faults :lazyfs)
-    (let [targets    (:targets  lazyfs)
-          behavior   (:behavior lazyfs)
-          _          (assert (seq targets))
-          _          (assert (lazyfs-commands behavior))
-          gen        (->> {:type  :info
-                           :f     behavior
-                           :value targets}
-                          repeat
+    (let [targets    (:targets   lazyfs)
+          behaviors  (:behaviors lazyfs)
+          _          (assert (seq targets)   "Must specify at least one target for lazyfs.")
+          _          (assert (seq behaviors) "Must specify at least one behavior for lazyfs.")
+          behaviors  (->> behaviors (into [])) ; random/nth doesn't work on sets
+          gen        (->> (repeatedly
+                           (fn []
+                             (let [behavior (random/nth behaviors)]
+                               {:type  :info
+                                :f     behavior
+                                :value targets})))
                           (gen/stagger (or interval nc/default-interval)))
           final-gen  (gen/phases
-                      (gen/log (str "final " behavior " for " targets))
-                      {:type  :info
-                       :f     behavior
-                       :value targets})
+                      (gen/log (str "final " behaviors " for " targets))
+                      (->> behaviors
+                           (map (fn [behavior]
+                                  {:type  :info
+                                   :f     behavior
+                                   :value targets}))))
           lazyfs-map (loop [db db]
                        (cond
                          ; lazyfs DB
