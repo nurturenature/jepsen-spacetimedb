@@ -1,5 +1,7 @@
 (ns spacetimedb.workload
-  (:require [jepsen.client :refer [timeout]]
+  (:require [jepsen
+             [client :refer [timeout]]
+             [tests :as tests]]
             [jepsen.tests.cycle.append :as list-append]
             [spacetimedb.role :as role]
             [spacetimedb.db
@@ -50,3 +52,10 @@
    [[spacetimedb.client/dispatch-by-f]] will map op to uri for this workload."
   [opts]
   (list-append opts))
+
+(def workloads
+  "A map of workload names to functions that take CLI options and return
+  workload maps."
+  {:list-append               list-append
+   :list-append-all-functions list-append-all-functions
+   :none                      (fn [_] tests/noop-test)})

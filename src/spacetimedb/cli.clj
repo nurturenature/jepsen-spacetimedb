@@ -18,13 +18,6 @@
              [client-node :as client-node]
              [spacetimedb :as stdb]]))
 
-(def workloads
-  "A map of workload names to functions that take CLI options and return
-  workload maps."
-  {:list-append               workload/list-append
-   :list-append-all-functions workload/list-append-all-functions
-   :none        (fn [_] tests/noop-test)})
-
 (def all-workloads
   "Default collection of workloads for test-all."
   [:list-append])
@@ -98,7 +91,7 @@
   "Given options from the CLI, constructs a test map."
   [{:keys [check-final-txns? lazyfs-behavior lazyfs-targets universal-timeout] :as opts}]
   (let [workload-name (:workload opts)
-        workload ((workloads workload-name) opts)
+        workload ((workload/workloads workload-name) opts)
         db       (:db workload)
         nemesis  (nemesis/nemesis-package
                   {:db         db
@@ -285,8 +278,7 @@
    ["-w" "--workload NAME" "What workload should we run?"
     :default  workload/default-workload
     :parse-fn keyword
-    :missing  (str "Must specify a workload: " (cli/one-of workloads))
-    :validate [workloads (cli/one-of workloads)]]])
+    :validate [workload/workloads (cli/one-of workload/workloads)]]])
 
 (defn all-tests
   "Turns CLI options into a sequence of tests."
