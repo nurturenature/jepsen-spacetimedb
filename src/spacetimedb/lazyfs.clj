@@ -14,7 +14,8 @@
 (defn unsynced-data-report!
   "Generate a report of the unsynced data for the given `lazyfs-map` in the lazyfs log file."
   [lazyfs-map]
-  (lazyfs/fifo! lazyfs-map "lazyfs::unsynced-data-report"))
+  (lazyfs/fifo! lazyfs-map "lazyfs::unsynced-data-report")
+  :done)
 
 (defrecord LazyFSNemesis [lazyfs-map]
   nemesis/Reflection
