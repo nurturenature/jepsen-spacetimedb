@@ -89,7 +89,7 @@
 
 (defn spacetimedb-test
   "Given options from the CLI, constructs a test map."
-  [{:keys [check-final-txns? lazyfs? lazyfs-behaviors lazyfs-targets universal-timeout] :as opts}]
+  [{:keys [check-final-txns? ignore-logs? lazyfs? lazyfs-behaviors lazyfs-targets universal-timeout] :as opts}]
   (let [workload-name (:workload opts)
         workload ((workload/workloads workload-name) opts)
         db       (:db workload)
@@ -123,13 +123,13 @@
                          :timeline           (timeline/html)
                          :stats              (checker/stats)
                          :exceptions         (checker/unhandled-exceptions)
-                         :logs-client        (if (:ignore-logs? opts)
+                         :logs-client        (if ignore-logs?
                                                (checker/unbridled-optimism)
                                                (checker/log-file-pattern #"(ERROR)" client-node/log-file-short))
-                         :logs-spacetimedb   (if (:ignore-logs? opts)
+                         :logs-spacetimedb   (if ignore-logs?
                                                (checker/unbridled-optimism)
                                                (checker/log-file-pattern #"(ERROR)" stdb/log-file-short))
-                         :logs-lazyfs        (if lazyfs?
+                         :logs-lazyfs        (if (and lazyfs? (not ignore-logs?))
                                                (checker/log-file-pattern #"is not fully synced" stdb/log-lazyfs-short)
                                                (checker/unbridled-optimism))
                          :workload           (:checker workload)
