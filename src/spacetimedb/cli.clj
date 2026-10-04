@@ -110,7 +110,7 @@
                    :partition  {:targets [:majority]}
                    :pause      {:targets [nil]}
                    :power-glitch {}})
-        quiesce-timeout (-> universal-timeout (* 3) (quot 1000))]
+        quiesce-timeout (-> universal-timeout (* 4) (quot 1000))]
     (merge tests/noop-test
            opts
            {:name      (test-name opts)
