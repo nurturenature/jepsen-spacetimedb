@@ -146,7 +146,7 @@
                   {:retry-interval 500
                    :log-interval   500
                    :log-message    "Waiting for SpacetimeDB liveness query..."
-                   :timeout        universal-timeout})
+                   :timeout        (* 2 universal-timeout)})
       true
       (catch Exception _
         false))))
