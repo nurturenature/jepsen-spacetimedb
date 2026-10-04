@@ -12,7 +12,8 @@ Using LazyFS the tests were able to show unfsynced writes.
 
 The issue, [un-fsync'd writes #4886](https://github.com/clockworklabs/SpacetimeDB/issues/4886).
 
-And it's been addressed in SpacetimeDB 2.2.0 🎉
+It's mostly(?) been addressed in SpacetimeDB 2.2.0.
+At the current time, there remains unsynced data, but it appears that its loss does not effect the server beng restarted.([issue update](https://github.com/clockworklabs/SpacetimeDB/issues/4886#issuecomment-5975917190))
 
 ----
 

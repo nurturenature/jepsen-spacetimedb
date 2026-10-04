@@ -293,12 +293,31 @@ We'll use the `LazyFS` tool
 
 to simulated a power glitch
 
+- mount db's data dir on `LazyFS`
 - let db do some work, i.e. writes
 - 🌩️ power glitch
   - kill the db's process
-  - `lose-unfsynced-writes` with LazyFS
+  - `lose-unfsynced-writes` with `LazyFS`
 - ☀️ power normal
   - attempt to restart the db
+
+#### Unfsynced Data Found
+
+Simulating a power glitch was able to expose unfsynced data
+([issue](https://github.com/clockworklabs/SpacetimeDB/issues/4886)) whose loss would render the database unstartable.
+
+It's mostly(?) been addressed in SpacetimeDB 2.2.0.
+At the current time, there remains unsynced data, but it appears that its loss does not effect the server beng restarted.([issue update](https://github.com/clockworklabs/SpacetimeDB/issues/4886#issuecomment-5975917190))
+
+##### A Successful Test Losing Unfsynced Writes and Kills/Starts
+
+Note how the server always is able to restart, clients reconnect, and transactions resume.
+
+```bash
+lein run test --workload list-append --lazyfs? true --nemesis lazyfs,kill-start --nodes spacetimedb,n1,n2,n3 --concurrency 3 --rate 1000 --time-limit 600
+```
+
+![loose-unfsynced-writes-kill-start-latency-raw](docs/images/loose-unfsynced-writes-kill-start-latency-raw.png)
 
 ----
 
