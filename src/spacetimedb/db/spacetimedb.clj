@@ -46,6 +46,12 @@
 (def spacetimedb-data-dir
   "SpacetimeDB data directory."
   "/root/.local/share/spacetime/data")
+(def lazyfs-mount-dir
+  "When using LazyFS, the mount directory."
+  "/root/.local/share/spacetime/lazyfs.mount")
+(def lazyfs-data-dir
+  "When using LazyFS, the data directory."
+  (str lazyfs-mount-dir "/data"))
 
 (def spacetimedb-files
   "A map of most of the SpacetimeDB file locations."
@@ -87,31 +93,30 @@
       (c/exec :git :clone :-b :main :--depth :1 :--single-branch "https://github.com/nurturenature/jepsen-spacetimedb.git"))))
 
 (defn install-spacetimedb
-  [force-reinstall-spacetimedb?]
-  (c/su
-   (when force-reinstall-spacetimedb?
-     ; remove any old files
-     (doseq [file-or-dir (vals spacetimedb-files)]
-       (u/meh  ; data dir may already be lazyfs mounted so undeletable, so meh
-        (c/exec :rm :-rf file-or-dir))))
+  [force-reinstall-spacetimedb? lazyfs?]
+  (when force-reinstall-spacetimedb?
+    (doseq [file-or-dir (vals spacetimedb-files)]
+      (c/exec :rm :-rf file-or-dir)))
 
-   (c/exec :mkdir :--parents jepsen-dir)
+  (c/exec :mkdir :--parents jepsen-dir)
 
-   (if (not (cu/exists? spacetimedb-binary))
-     (do
-       (info "downloading and installing latest SpacetimeDB")
-       (c/cd jepsen-dir
+  (if (not (cu/exists? spacetimedb-binary))
+    (do
+      (info "downloading and installing latest SpacetimeDB")
+      (c/cd jepsen-dir
              ; download and install binary
-             (c/exec :curl :-sSf :--output :install-spacetimedb.sh "https://install.spacetimedb.com")
-             (c/exec :chmod :a+x :install-spacetimedb.sh)
-             (c/exec "./install-spacetimedb.sh" :--yes)
+            (c/exec :curl :-sSf :--output :install-spacetimedb.sh "https://install.spacetimedb.com")
+            (c/exec :chmod :a+x :install-spacetimedb.sh)
+            (c/exec "./install-spacetimedb.sh" :--yes)
 
              ; configuring should also create config ~/.config/spacetime/cli.toml
-             (c/exec spacetimedb-binary :server :set-default :local)))
-     (do
-       (info "SpacetimeDB already installed, clearing and upgrading")
-       (c/exec spacetimedb-binary :server :clear :--yes)
-       (c/exec spacetimedb-binary :version :upgrade)))))
+            (c/exec spacetimedb-binary :server :set-default :local)))
+    (do
+      (info "SpacetimeDB already installed, clearing and upgrading")
+      (c/exec spacetimedb-binary :server :clear :--data-dir (if lazyfs?
+                                                              lazyfs-data-dir
+                                                              spacetimedb-data-dir) :--yes)
+      (c/exec spacetimedb-binary :version :upgrade))))
 
 (defn configure-test-db
   "Configure SpacetimeDB for a test-db.
@@ -153,24 +158,15 @@
 
 (def spacetimedb-setup? (atom false))
 
-;; Local SpacetimeDB database.
-;; lazyfs-map may be nil
-(defrecord STDB [lazyfs-map]
+; local SpacetimeDB database
+(defrecord STDB []
   db/DB
   (setup!
-    [this {:keys [force-reinstall-repository? force-reinstall-spacetimedb?] :as test} node]
+    [this {:keys [force-reinstall-repository? force-reinstall-spacetimedb? lazyfs?] :as test} node]
     (info "setting up SpacetimeDB" node)
 
     (install-packages)
-    (install-spacetimedb force-reinstall-spacetimedb?)
-
-    ; NOTE: must install SpacetimeDB before
-    ; mounting lazyfs and starting the db
-    (when lazyfs-map
-      (if-not (cu/exists? lazyfs/bin)
-        (lazyfs/install!)
-        (info "using already installed lazyfs bin:" lazyfs/bin))
-      (lazyfs/mount! lazyfs-map))
+    (install-spacetimedb force-reinstall-spacetimedb? lazyfs?)
 
     (db/start! this test node)
 
@@ -195,12 +191,6 @@
     (c/su
      (c/exec :rm :-rf log-file pid-file))
 
-    ; NOTE: teardown lazyfs last
-    (when lazyfs-map
-      (lazyfs/umount! lazyfs-map)
-      (c/su
-       (c/exec :rm :-rf log-lazyfs)))
-
     (swap! spacetimedb-setup? (constantly false)))
 
   ;; SpacetimeDB doesn't have `primaries`.
@@ -215,14 +205,11 @@
   db/LogFiles
   (log-files
     [_db _test _node]
-    (merge
-     {log-file log-file-short}
-     (when lazyfs-map
-       {log-lazyfs log-lazyfs-short})))
+    {log-file log-file-short})
 
   db/Kill
   (start!
-    [_this _test _node]
+    [_this {:keys [lazyfs?] :as _test} _node]
     (if (cu/daemon-running? pid-file)
       :already-running
       (do
@@ -233,7 +220,9 @@
            :pidfile pid-file}
           spacetimedb-binary
           :start
-          :--data-dir spacetimedb-data-dir
+          :--data-dir (if lazyfs?
+                        lazyfs-data-dir
+                        spacetimedb-data-dir)
           :--pg-port pg-port
           :--non-interactive))
         :started)))
@@ -257,15 +246,65 @@
 (defn stdb
   "Installs and uses the latest version of SpacetimeDB."
   []
-  (STDB. nil))
+  (STDB.))
+
+(defrecord LazyFSSTDB [lazyfs-db stdb-db]
+  db/DB
+  (setup!
+    [this test node]
+    (db/setup! lazyfs-db test node)
+    (db/setup! stdb-db   test node)
+    this)
+
+  (teardown!
+    [this test node]
+    (db/teardown! stdb-db   test node)
+    (db/teardown! lazyfs-db test node)
+    this)
+
+  ; SpacetimeDB doesn't have `primaries`
+  db/Primary
+  (primaries
+    [_db _test]
+    nil)
+
+  (setup-primary!
+    [_db _test _node])
+
+  db/LogFiles
+  (log-files
+    [_db test node]
+    (merge
+     (db/log-files stdb-db   test node)
+     (db/log-files lazyfs-db test node)))
+
+  db/Kill
+  (start!
+    [_this test node]
+    (db/start! stdb-db test node))
+
+  (kill!
+    [_this test node]
+    (db/kill! stdb-db test node))
+
+  db/Pause
+  (pause!
+    [_this test node]
+    (db/pause! stdb-db test node))
+
+  (resume!
+    [_this test node]
+    (db/resume! stdb-db test node)))
 
 (defn lazyfs-stdb
   "Installs and uses the latest version of SpacetimeDB.
-   Data directory is mounted on a lazyfs."
+   Data directory is mounted on a LazyFS."
   []
-  (let [lazyfs-map {:dir spacetimedb-data-dir :log-file log-lazyfs}
-        lazyfs-map (lazyfs/lazyfs lazyfs-map)]
-    (STDB. lazyfs-map)))
+  (let [lazyfs-db (->> {:dir lazyfs-mount-dir :log-file log-lazyfs}
+                       lazyfs/lazyfs
+                       lazyfs/db)
+        stdb-db   (stdb)]
+    (LazyFSSTDB. lazyfs-db stdb-db)))
 
 (defn watched-stdb
   "Wraps given stdb with a [[jepsen.db.watchdog]] that monitors and restarts every interval."
