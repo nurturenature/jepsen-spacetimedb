@@ -162,6 +162,32 @@ In addition to the SDK API, this includes use of the `spacetime` CLI.
 
 ----
 
+## No Faults
+
+In a no fault environment:
+
+- generate random writes, appends to a list by key, and reads by key
+  - key distribution is exponential to encourage any potential conflicts
+  - random number of statements in each transaction
+  
+  ```log
+  4 :invoke :txn [[:r 33 nil] [:append 39 6] [:append 39 7]]
+  4 :ok     :txn [[:r 33 [93 100 101 102]] [:append 39 6] [:append 39 7]]
+  ```
+
+- against random clients
+- at the end of the test, check the transaction history for [Strong Serializable](https://jepsen.io/consistency/models/strong-serializable)
+
+In a no fault environment, SpacetimeDB has always tested as Strong Serializable.
+
+```clj
+{:consistency-models [:strict-serializable]
+ :workload           {:valid? true}}
+Everything looks good! ヽ(‘ー`)ノ
+```
+
+----
+
 ## Faults
 
 Jepsen runs the real database with real clients in a real environment and introduces real faults.
@@ -259,6 +285,10 @@ grepkill SIGCONT spacetime
 grepkill SIGSTOP node
 grepkill SIGCONT node
 ```
+
+In a kill/start fault environment, SpacetimeDB has always tested as Strong Serializable.
+
+![kill start latency raw](docs/images/kill-start-latency-raw.png)
 
 ----
 
