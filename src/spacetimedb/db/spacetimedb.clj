@@ -93,16 +93,17 @@
       (c/exec :git :clone :-b :main :--depth :1 :--single-branch "https://github.com/nurturenature/jepsen-spacetimedb.git"))))
 
 (defn install-spacetimedb
-  [force-reinstall-spacetimedb? lazyfs?]
+  [spacetimedb-version force-reinstall-spacetimedb? lazyfs?]
   (when force-reinstall-spacetimedb?
     (doseq [file-or-dir (vals spacetimedb-files)]
-      (c/exec :rm :-rf file-or-dir)))
+      (u/meh ; LazyFS may be mounted, Ok to ignore errors
+       (c/exec :rm :-rf file-or-dir))))
 
   (c/exec :mkdir :--parents jepsen-dir)
 
   (if (not (cu/exists? spacetimedb-binary))
     (do
-      (info "downloading and installing latest SpacetimeDB")
+      (info "downloading and installing SpacetimeDB" spacetimedb-version)
       (c/cd jepsen-dir
              ; download and install binary
             (c/exec :curl :-sSf :--output :install-spacetimedb.sh "https://install.spacetimedb.com")
@@ -112,11 +113,11 @@
              ; configuring should also create config ~/.config/spacetime/cli.toml
             (c/exec spacetimedb-binary :server :set-default :local)))
     (do
-      (info "SpacetimeDB already installed, clearing and upgrading")
+      (info "SpacetimeDB already installed, clearing database and using version" spacetimedb-version)
       (c/exec spacetimedb-binary :server :clear :--data-dir (if lazyfs?
                                                               lazyfs-data-dir
                                                               spacetimedb-data-dir) :--yes)
-      (c/exec spacetimedb-binary :version :upgrade))))
+      (c/exec spacetimedb-binary :version :use spacetimedb-version))))
 
 (defn configure-test-db
   "Configure SpacetimeDB for a test-db.
@@ -162,17 +163,17 @@
 (defrecord STDB []
   db/DB
   (setup!
-    [this {:keys [force-reinstall-repository? force-reinstall-spacetimedb? lazyfs?] :as test} node]
+    [this {:keys [force-reinstall-repository? force-reinstall-spacetimedb? lazyfs? spacetimedb-version universal-timeout] :as test} node]
     (info "setting up SpacetimeDB" node)
 
     (install-packages)
-    (install-spacetimedb force-reinstall-spacetimedb? lazyfs?)
+    (install-spacetimedb force-reinstall-spacetimedb? lazyfs? spacetimedb-version)
 
     (db/start! this test node)
 
     (configure-test-db force-reinstall-repository?)
 
-    (let [alive? (u/timeout 10000 ::timed-out
+    (let [alive? (u/timeout (* 4 universal-timeout) ::timed-out
                             (while (not (spacetimedb-alive? test))
                               (info "waiting for SpacetimeDB to be alive")))]
       (when (= ::timed-out alive?)

@@ -1,7 +1,7 @@
 (ns spacetimedb.checker
-  (:require [jepsen
+  (:require [clojure.set :as set]
+            [jepsen
              [checker :as checker]
-             [client :as client]
              [history :as h]
              [role :as role]]
             [spacetimedb.role :as stdb-role]))
@@ -13,50 +13,29 @@
   []
   (reify checker/Checker
     (check [_this test history _opts]
-      (let [nodes      (->> stdb-role/client-role
-                            (role/nodes test)
-                            (into #{}))
-            history-r  (->> history
-                            h/client-ops
-                            (h/filter (fn [{:keys [type] :as _op}]
-                                        (not= :invoke type)))
-                            reverse)
-            [finals
-             remaining] (->> history-r
-                             (reduce
-                              (fn [[finals remaining :as acc] {:keys [error node] :as op}]
-                                (cond
-                                  ; timeout error
-                                  (and (not node) (= client/timeout error))
-                                  acc
-
-                                  ; node remains to be done?
-                                  (contains? remaining node)
-                                  (let [finals    (assoc finals node op)
-                                        remaining (disj remaining node)]
-                                    (if (empty? remaining)
-                                      (reduced [finals remaining])
-                                      [finals remaining]))
-
-                                  ; node already was done, no-op
-                                  :else
-                                  acc))
-                              [{} nodes]))
-
-            finals-not-ok (->> finals
-                               (filter (fn [[_node {:keys [type] :as _op}]]
-                                         (not= :ok type)))
-                               (into (sorted-map)))
-            remaining     (->> remaining
-                               (into (sorted-set)))]
+      (let [client-nodes      (->> stdb-role/client-role
+                                   (role/nodes test)
+                                   (into #{}))
+            history           (->> history
+                                   h/client-ops
+                                   (h/remove #(= :invoke (:type %))))
+            node->final-type  (->> history
+                                   (reduce (fn [acc {:keys [node type] :as _op}]
+                                             (update acc node type))
+                                           (sorted-map)))
+            final-nodes       (->> node->final-type keys (into #{}))
+            missing-nodes     (->> (set/difference client-nodes final-nodes) (into (sorted-set)))
+            final-type->nodes (->> node->final-type
+                                   (group-by val))
+            final-types       (->> final-type->nodes
+                                   keys
+                                   (into #{}))]
         ; result map
-        (cond-> {:valid? true}
-          ; all transactions should be ok
-          (seq finals-not-ok)
-          (assoc :valid? false
-                 :non-ok-final-txns finals-not-ok)
-
-          ; all nodes should have a txn
-          (seq remaining)
-          (assoc :valid? false
-                 :nodes-missing-final-txns remaining))))))
+        (merge {:valid?     true
+                :final-txns node->final-type}
+               (when (seq missing-nodes)
+                 {:valid? false
+                  :error  (str "Missing final transactions for nodes: " missing-nodes)})
+               (when-not (= final-types #{:ok})
+                 {:valid? false
+                  :error  "All final transactions are not :ok for each node"}))))))
