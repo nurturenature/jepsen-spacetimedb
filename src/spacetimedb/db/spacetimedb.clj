@@ -157,17 +157,15 @@
       (catch Exception _
         false))))
 
-(def spacetimedb-setup? (atom false))
-
 ; local SpacetimeDB database
 (defrecord STDB []
   db/DB
   (setup!
     [this {:keys [force-reinstall-repository? force-reinstall-spacetimedb? lazyfs? spacetimedb-version universal-timeout] :as test} node]
-    (info "setting up SpacetimeDB" node)
+    (info "setting up SpacetimeDB on" node)
 
     (install-packages)
-    (install-spacetimedb force-reinstall-spacetimedb? lazyfs? spacetimedb-version)
+    (install-spacetimedb spacetimedb-version force-reinstall-spacetimedb? lazyfs?)
 
     (db/start! this test node)
 
@@ -179,20 +177,17 @@
       (when (= ::timed-out alive?)
         (throw+ {:type :error :error "unable to start SpacetimeDB"})))
 
-    (info "SpacetimeDB setup")
-    (swap! spacetimedb-setup? (constantly true)))
+    (info "SpacetimeDB setup on" node))
 
   (teardown!
     [this test node]
-    (info "tearing down SpacetimeDB" node)
+    (info "tearing down SpacetimeDB on" node)
     (db/kill! this test node)
 
     ; NOTE: leaving SpacetimeDB installed
 
     (c/su
-     (c/exec :rm :-rf log-file pid-file))
-
-    (swap! spacetimedb-setup? (constantly false)))
+     (c/exec :rm :-rf log-file pid-file)))
 
   ;; SpacetimeDB doesn't have `primaries`.
   db/Primary

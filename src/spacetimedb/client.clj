@@ -124,6 +124,12 @@
             :node
             :uri)))
 
+(defn stdb-client
+  "Returns a SpacetimeDB client.
+   Client is wrapped in a [[jepsen.client/timeout]] to ensure that all client calls are bounded by the universal-timeout."
+  [universal-timeout]
+  (client/timeout universal-timeout (SpacetimeDBClient.)))
+
 ;; (defrecord SpacetimeDBClientNOOP [conn]
 ;;   client/Client
 ;;   (open!
