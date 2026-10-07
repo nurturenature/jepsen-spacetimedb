@@ -67,7 +67,7 @@
                :accept             "application/json"})
     true))
 
-(defrecord CLIENT_NODE []
+(defrecord ClientNode []
   db/DB
   (setup!
     [this {:keys [force-reinstall-repository? universal-timeout] :as test} node]
@@ -76,16 +76,7 @@
 
     (install-client force-reinstall-repository?)
 
-    ; SpacetimeDB must be started to continue
-    (u/await-fn (fn waiting-spacetimedb []
-                  (if @stdb/spacetimedb-setup?
-                    true
-                    (throw+ {:error "SpacetimeDB not ready"})))
-                {:retry-interval 1000
-                 :log-interval   universal-timeout
-                 :log-message    "waiting for @stdb/spacetimedb-setup?"
-                 ; TODO: SpacetimeDB seems to start slowly on Docker w/lazyfs?
-                 :timeout        (-> universal-timeout (* 10))})
+    ; assuming SpacetimeDB is started and available for connections
 
     (u/await-fn (fn start-client-node []
                   (db/start! this test node)
@@ -163,7 +154,7 @@
 (defn client-node
   "A client-node DB."
   []
-  (CLIENT_NODE.))
+  (ClientNode.))
 
 (defn watched-client-node
   "Given a client-node DB and an interval,

@@ -1,11 +1,12 @@
 (ns spacetimedb.workload
   (:require [jepsen
-             [client :refer [timeout]]
              [tests :as tests]]
             [jepsen.tests.cycle.append :as list-append]
-            [spacetimedb.role :as role]
+            [spacetimedb
+             [client :as stdb-client]
+             [role :as stdb-role]]
             [spacetimedb.db
-             [spacetimedb :as stdb]
+             [spacetimedb :as stdb-node]
              [client-node :as client-node]]))
 
 (def default-workload
@@ -21,18 +22,20 @@
   (assert (and key-count min-txn-length max-txn-length max-writes-per-key)
           (str "opts must specify {key-count min-txn-length max-txn-length max-writes-per-key}: " opts))
   (let [watchdog-timeout (+ 1000 universal-timeout)
-        stdb     (if lazyfs?
-                   (stdb/lazyfs-stdb)
-                   (stdb/stdb))
-        stdb     (stdb/watched-stdb stdb watchdog-timeout)
-        cndb     (client-node/client-node)
-        cndb     (client-node/watched-client-node cndb watchdog-timeout)
-        roles-db (role/roles-based-db stdb cndb)]
+        stdb (if lazyfs?
+               (stdb-node/lazyfs-stdb)
+               (stdb-node/stdb))
+        stdb (stdb-node/watched-stdb stdb watchdog-timeout)
+        cndb (client-node/client-node)
+        cndb (client-node/watched-client-node cndb watchdog-timeout)
+        roles        (stdb-role/roles-map opts)
+        roles-db     (stdb-role/roles-based-db stdb cndb)
+        roles-client (stdb-role/restricted-client (stdb-client/stdb-client universal-timeout))]
     (merge
      (list-append/test opts)
-     {:db              roles-db
-      :client          (timeout universal-timeout (role/restricted-client))
-      :roles           (role/roles-map opts)})))
+     {:roles  roles
+      :db     roles-db
+      :client roles-client})))
 
 (defn list-append-all-functions
   "A [[list-append]] workload that uses:
