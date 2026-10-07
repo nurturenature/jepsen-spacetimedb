@@ -21,7 +21,7 @@
                                    (h/remove #(= :invoke (:type %))))
             node->final-type  (->> history
                                    (reduce (fn [acc {:keys [node type] :as _op}]
-                                             (update acc node type))
+                                             (assoc acc node type))
                                            (sorted-map)))
             final-nodes       (->> node->final-type keys (into #{}))
             missing-nodes     (->> (set/difference client-nodes final-nodes) (into (sorted-set)))
