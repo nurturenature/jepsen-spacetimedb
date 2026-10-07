@@ -1,4 +1,4 @@
-(defproject spacetimedb "0.0.1-SNAPSHOT"
+(defproject spacetimedb "0.0.2-SNAPSHOT"
   :description "Jepsen Tests for SpacetimeDB."
   :url "https://github.com/nurturenature/jepsen-spacetimedb"
   :license {:name "Apache License Version 2.0, January 2004"

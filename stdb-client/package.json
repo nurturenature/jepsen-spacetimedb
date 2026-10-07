@@ -1,7 +1,7 @@
 {
   "name": "stdb-client",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.0.2-snapshot",
   "type": "module",
   "scripts": {
     "dev": "esbuild src/main.ts --bundle --platform=node --outfile=dist/main.js --format=esm && node dist/main.js",
