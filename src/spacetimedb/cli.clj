@@ -110,7 +110,27 @@
                    :partition  {:targets [:majority]}
                    :pause      {:targets [nil]}
                    :power-glitch {}})
-        quiesce-timeout (-> universal-timeout (* 4) (quot 1000))]
+        quiesce-timeout (-> universal-timeout (* 4) (quot 1000))
+        generator (gen/phases
+                   (gen/log "Workload with nemesis")
+                   (->> (:generator workload)
+                        (gen/stagger    (/ (:rate opts)))
+                        (gen/nemesis    (:generator nemesis))
+                        (gen/time-limit (:time-limit opts)))
+
+                   (gen/log "Final nemesis")
+                   (gen/nemesis (:final-generator nemesis))
+
+                   (gen/log (str "Quiesce for " quiesce-timeout "s..."))
+                   (gen/sleep quiesce-timeout)
+
+                   (gen/log "Final workload")
+                   (->> (:final-generator workload)
+                        (gen/each-process)
+                        (gen/clients)))
+        generator (if-let [wrap-generator (:wrap-generator workload)]
+                    (wrap-generator generator)
+                    generator)]
     (merge tests/noop-test
            opts
            {:name      (test-name opts)
@@ -139,24 +159,7 @@
                          :clock              (checker/clock-plot)})
             :client    (:client workload)
             :nemesis   (:nemesis nemesis)
-            :generator (gen/phases
-                        (gen/log "Workload with nemesis")
-                        (->> (:generator workload)
-                             (gen/stagger    (/ (:rate opts)))
-                             (gen/nemesis    (:generator nemesis))
-                             (gen/time-limit (:time-limit opts)))
-
-                        (gen/log "Final nemesis")
-                        (gen/nemesis (:final-generator nemesis))
-
-                        (gen/log (str "Quiesce for " quiesce-timeout "s..."))
-                        (gen/sleep quiesce-timeout)
-
-                        (gen/log "Final workload")
-                        (->> (:final-generator workload)
-                             (gen/once)
-                             (gen/each-thread)
-                             (gen/clients)))})))
+            :generator generator})))
 
 (def cli-opts
   "Command line options"
@@ -267,6 +270,11 @@
     :default  stdb/spacetimedb-host-name
     :parse-fn str
     :validate [string? "Must be a String."]]
+
+   [nil "--spacetimedb-version VERSION" "Which version of SpacetimeDB to install."
+    :default  "2.10.2"
+    :parse-fn str
+    :validate [string? "Version must be a String."]]
 
    [nil "--universal-timeout MS" "The number of ms to wait before timing out a connection."
     :default  3000

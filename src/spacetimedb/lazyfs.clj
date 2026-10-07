@@ -77,9 +77,13 @@
                                    :value targets}))))
           lazyfs-map (loop [db db]
                        (cond
+                         ; lazyfs-stdb
+                         (contains? db :lazyfs-db)
+                         (recur (:lazyfs-db db))
+
                          ; lazyfs DB
-                         (contains? db :lazyfs-map)
-                         (:lazyfs-map db)
+                         (contains? db :lazyfs)
+                         (:lazyfs db)
 
                          ; wrapped DB
                          (contains? db :db)

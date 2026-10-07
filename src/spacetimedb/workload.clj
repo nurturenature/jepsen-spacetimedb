@@ -8,14 +8,6 @@
              [spacetimedb :as stdb]
              [client-node :as client-node]]))
 
-(def final-generator
-  "Final generator that just reads sequential keys."
-  (->> (range)
-       (map (fn [k]
-              {:type :invoke
-               :f    :txn
-               :value [[:r k nil]]}))))
-
 (def default-workload
   "Default workload for test."
   :list-append)
@@ -38,7 +30,6 @@
         roles-db (role/roles-based-db stdb cndb)]
     (merge
      (list-append/test opts)
-     {:final-generator final-generator}
      {:db              roles-db
       :client          (timeout universal-timeout (role/restricted-client))
       :roles           (role/roles-map opts)})))
