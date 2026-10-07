@@ -128,7 +128,7 @@ jobs:
           mkdir -p $GITHUB_WORKSPACE/store/current
           docker cp jepsen-control:/jepsen/jepsen-spacetimedb/jepsen-spacetimedb/store/current/. $GITHUB_WORKSPACE/store/current \
             || echo "no jepsen-control store" > $GITHUB_WORKSPACE/store/current/jepsen-control.log
-          tail -n 100 $GITHUB_WORKSPACE/store/current/jepsen.log > $GITHUB_WORKSPACE/store/current/tail-jepsen.log \
+          tail -n 500 $GITHUB_WORKSPACE/store/current/jepsen.log > $GITHUB_WORKSPACE/store/current/tail-jepsen.log \
             || echo "no jepsen.log" > $GITHUB_WORKSPACE/store/current/tail-jepsen.log
 
       - name: "Jepsen Test Artifacts: summary"
