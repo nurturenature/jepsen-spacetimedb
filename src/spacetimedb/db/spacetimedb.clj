@@ -141,17 +141,15 @@
 
 (defn spacetimedb-alive?
   "Tests the SpacetimeDB server for liveness by executing
-   a SQL query in [[spacetimedb-db-name]]."
+   `spacetime server ping local`."
   [{:keys [spacetimedb-node universal-timeout] :as test}]
   (c/with-node test spacetimedb-node
     (try
-      (u/await-fn (fn sql-query-spacetimedb []
-                    (c/exec spacetimedb-binary :sql
-                            :--confirmed :true :--anonymous :--server :local :--yes spacetimedb-db-name
-                            :select :* :from :lists))
+      (u/await-fn (fn ping-spacetimedb []
+                    (c/exec spacetimedb-binary :server :ping :local))
                   {:retry-interval 500
                    :log-interval   500
-                   :log-message    "Waiting for SpacetimeDB liveness query..."
+                   :log-message    "waiting for SpacetimeDB ping to succeed"
                    :timeout        (* 2 universal-timeout)})
       true
       (catch Exception _
