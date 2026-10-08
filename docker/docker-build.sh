@@ -26,7 +26,7 @@ docker build \
 docker build \
        -t jepsen-spacetimedb \
        --build-arg JEPSEN_REGISTRY="${JEPSEN_REGISTRY}" \
-       --build-arg STDB_VERSION="2.10.2" \
+       --build-arg STDB_VERSION="2.11.0" \
        -f jepsen-spacetimedb.Dockerfile \
        --no-cache-filter body \
        ..

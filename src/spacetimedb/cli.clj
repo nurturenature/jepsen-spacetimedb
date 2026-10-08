@@ -267,7 +267,7 @@
     :validate [string? "Must be a String."]]
 
    [nil "--spacetimedb-version VERSION" "Which version of SpacetimeDB to install."
-    :default  "2.10.2"
+    :default  "2.11.0"
     :parse-fn str
     :validate [string? "Version must be a String."]]
 
