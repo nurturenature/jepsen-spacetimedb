@@ -213,12 +213,7 @@
    [nil "--key-dist DISTRIBUTION" "Probability distribution for keys being selected for a given operation."
     :default  :exponential
     :parse-fn keyword
-    :validate [#{:exponential :uniform} "Must be one of exponential or uniform."]]
-
-   [nil "--keys-txn NUM" "The number of keys to act on in a transactions."
-    :default  4
-    :parse-fn parse-long
-    :validate [pos? "Must be a positive integer."]]
+    :validate [#{:exponential :uniform :zipf} "Must be one of exponential, uniform, or zipf."]]
 
    [nil "--lazyfs? BOOLEAN" "Mount data dir in a lazy filesystem that can lose non fsync'd writes?"
     :default  false
@@ -237,7 +232,7 @@
     :validate [seq "Must be a list of nodes."]]
 
    [nil "--max-txn-length NUM" "Maximum number of operations per txn."
-    :default  4
+    :default  8
     :parse-fn parse-long
     :validate [pos? "Must be a positive integer."]]
 
@@ -247,7 +242,7 @@
     :validate [pos? "Must be a positive integer."]]
 
    [nil "--min-txn-length NUM" "Minimum number of operations per txn."
-    :default  2
+    :default  1
     :parse-fn parse-long
     :validate [pos? "Must be a positive integer."]]
 
