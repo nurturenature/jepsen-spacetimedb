@@ -69,12 +69,13 @@
                                 :value targets})))
                           (gen/stagger (or interval nc/default-interval)))
           final-gen  (gen/phases
-                      (gen/log (str "final " behaviors " for " targets))
-                      (->> behaviors
-                           (map (fn [behavior]
-                                  {:type  :info
-                                   :f     behavior
-                                   :value targets}))))
+                      (gen/log (str "final unsynced-data-report/lose-unfsynced-writes for " targets))
+                      [{:type  :info
+                        :f     :unsynced-data-report
+                        :value targets}
+                       {:type  :info
+                        :f     :lose-unfsynced-writes
+                        :value targets}])
           lazyfs-map (loop [db db]
                        (cond
                          ; lazyfs-stdb
