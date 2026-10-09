@@ -158,6 +158,7 @@
                                                (checker/unbridled-optimism))
                          :clock              (checker/clock-plot)})
             :client    (:client workload)
+            :fs->stdb  (:fs->stdb workload)
             :nemesis   (:nemesis nemesis)
             :generator generator})))
 

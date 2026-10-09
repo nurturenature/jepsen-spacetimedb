@@ -14,10 +14,8 @@
   :list-append)
 
 (defn list-append
-  "A SpacetimeDB workload where all reads/writes to a keyed append only list
-   happen in a transaction in a Procedure.
-   
-   [[spacetimedb.client/dispatch-by-f]] will map op to uri for this workload."
+  "A SpacetimeDB workload where all appends/reads to a keyed append only list
+   happen in a transaction in a `procedure`."
   [{:keys [key-count lazyfs? min-txn-length max-txn-length max-writes-per-key universal-timeout] :as opts}]
   (assert (and key-count min-txn-length max-txn-length max-writes-per-key)
           (str "opts must specify {key-count min-txn-length max-txn-length max-writes-per-key}: " opts))
@@ -35,21 +33,42 @@
      (list-append/test opts)
      {:roles  roles
       :db     roles-db
-      :client roles-client})))
+      :client roles-client
+      :fs->stdb {#{:append}    :procedure
+                 #{:r}         :procedure
+                 #{:append :r} :procedure}})))
 
 (defn list-append-all-functions
   "A [[list-append]] workload that uses:
    - reducer for all append txns
    - procedure for mixed append/read txns
-   - local client cache for all read txns
-   
-   [[spacetimedb.client/dispatch-by-f]] will map op to uri for this workload."
+   - local client cache for all read txns"
   [opts]
-  (list-append opts))
+  (merge
+   (list-append opts)
+   {:fs->stdb {#{:append}     :reducer
+               #{:r}          :local-cache
+               #{:append :r}  :procedure}}))
+
+(defn reducer-localcache-only
+  "A [[list-append]] workload that uses:
+   - reducer for all append txns
+   - fails mixed append/read txns
+   - local client cache for all read txns"
+  [opts]
+  (let [opts (assoc opts
+                    :min-txn-length 1   ; insure smaller txns
+                    :max-txn-length 4)] ; better chance of all :append or all :r txns
+    (merge
+     (list-append opts)
+     {:fs->stdb {#{:append}     :reducer
+                 #{:r}          :local-cache
+                 #{:append :r}  :fail}})))
 
 (def workloads
   "A map of workload names to functions that take CLI options and return
   workload maps."
   {:list-append               list-append
    :list-append-all-functions list-append-all-functions
+   :reducer-localcache-only   reducer-localcache-only
    :none                      (fn [_] tests/noop-test)})

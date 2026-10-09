@@ -82,37 +82,41 @@
               :type  :info
               :error {:status 500})))))
 
-(def dispatch-by-f
-  "A map of workload names to a (fn [op] uri)."
-  {:list-append               (constantly "lists/txn/procedure")
-   :list-append-all-functions (fn dispatch-by-f [{:keys [f value] :as _op}]
-                                (assert (= f :txn))
-                                (let [f's (->> value
-                                               (map (fn [[f _k _v]]
-                                                      f))
-                                               (into #{}))]
-                                  (case f's
-                                    #{:append}    "lists/appends/reducer"
-                                    #{:append :r} "lists/txn/procedure"
-                                    #{:r}         "lists/reads/cache")))})
-
+(defn op->fs
+  "Given an op, returns the set of functions,
+   `:append` and/or `:`r`, that are in the op's transaction."
+  [{:keys [f value] :as _op}]
+  (assert (= f :txn))
+  (->> value
+       (map (fn [[f _k _v]]
+              f))
+       (into #{})))
 (defrecord SpacetimeDBClient []
   client/Client
   (open!
-    [this {:keys [workload] :as _test} node]
+    [this _test node]
     (assoc this
            :node          node
-           :uri           (client-node/client-uri node)
-           :dispatch-by-f (get dispatch-by-f workload)))
+           :uri           (client-node/client-uri node)))
 
   (setup!
     [_this _test])
 
   (invoke!
-    [{:keys [dispatch-by-f node uri] :as _this} {:keys [universal-timeout] :as _test} {:keys [f] :as op}]
-    (let [op  (assoc op :node node)
-          uri (str uri "/" (dispatch-by-f op))]
-      (invoke op uri universal-timeout)))
+    [{:keys [node uri] :as _this} {:keys [fs->stdb universal-timeout] :as _test} op]
+    (let [op       (assoc op :node node)
+          fs       (op->fs op)
+          stdb-fn  (get fs->stdb fs)]
+      (if-let [endpoint (case stdb-fn
+                          :procedure   "lists/txn/procedure"
+                          :reducer     "lists/appends/reducer"
+                          :local-cache "lists/reads/cache"
+                          :fail        nil)]
+        (let [uri (str uri "/" endpoint)]
+          (invoke op uri universal-timeout))
+        (assoc op
+               :type  :fail
+               :error (str "No SpacetimeDB function mapped for a txn of fs: " fs)))))
 
   (teardown!
     [_this _test])
@@ -120,7 +124,6 @@
   (close!
     [this _test]
     (dissoc this
-            :dispatch-by-f
             :node
             :uri)))
 
