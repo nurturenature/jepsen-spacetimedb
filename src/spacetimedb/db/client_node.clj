@@ -9,7 +9,6 @@
             [jepsen.control.util :as cu]
             [jepsen.db.watchdog :as watchdog]
             [jepsen.os.debian :as debian]
-            [slingshot.slingshot :refer [throw+]]
             [spacetimedb.util :refer [killall]]
             [spacetimedb.db.spacetimedb :as stdb]))
 
@@ -76,7 +75,7 @@
 
     (install-client force-reinstall-repository?)
 
-    ; assuming SpacetimeDB is started and available for connections
+    ; assuming SpacetimeDB server is already started and available for connections
 
     (u/await-fn (fn start-client-node []
                   (db/start! this test node)
@@ -137,19 +136,16 @@
 
   (kill!
     [_this _test _node]
-    (killall client-node-ps-name)
-    :killed)
+    (killall client-node-ps-name))
 
   db/Pause
   (pause!
     [_this _test _node]
-    (killall :STOP client-node-ps-name)
-    :paused)
+    (killall :STOP client-node-ps-name))
 
   (resume!
     [_this _test _node]
-    (killall :CONT client-node-ps-name)
-    :resumed))
+    (killall :CONT client-node-ps-name)))
 
 (defn client-node
   "A client-node DB."

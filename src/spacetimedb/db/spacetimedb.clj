@@ -222,20 +222,18 @@
         :started)))
 
   (kill!
-    [_this _test _node]
-    (killall spacetimedb-ps-name)
-    :killed)
+    [_this {:keys [kill-with] :as _test} _node]
+    (killall kill-with spacetimedb-ps-name true)) ; wait for process to die
+
 
   db/Pause
   (pause!
     [_this _test _node]
-    (killall :STOP spacetimedb-ps-name)
-    :paused)
+    (killall :STOP spacetimedb-ps-name))
 
   (resume!
     [_this _test _node]
-    (killall :CONT spacetimedb-ps-name)
-    :resumed))
+    (killall :CONT spacetimedb-ps-name)))
 
 (defn stdb
   "Installs and uses the latest version of SpacetimeDB."

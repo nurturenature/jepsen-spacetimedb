@@ -188,13 +188,6 @@
     :parse-fn str
     :validate [string? "Must be a String."]]
 
-   ;; TODO: bug in SpacetimeDB is logging spurious ERRORs in client logs
-   ;;       server logs errors but they don't affect db correctness
-   [nil "--ignore-logs? BOOLEAN" "Ignore logs when looking for errors?"
-    :default  true
-    :parse-fn parse-boolean
-    :validate [boolean? "Must be a boolean."]]
-
    [nil "--force-reinstall-repository? BOOLEAN" "Forces re-installation of repository."
     :default  false
     :parse-fn parse-boolean
@@ -202,6 +195,13 @@
 
    [nil "--force-reinstall-spacetimedb? BOOLEAN" "Forces re-installation of SpacetimeDB."
     :default  false
+    :parse-fn parse-boolean
+    :validate [boolean? "Must be a boolean."]]
+
+   ;; TODO: bug in SpacetimeDB is logging spurious ERRORs in client logs
+   ;;       server logs errors but they don't affect db correctness
+   [nil "--ignore-logs? BOOLEAN" "Ignore logs when looking for errors?"
+    :default  true
     :parse-fn parse-boolean
     :validate [boolean? "Must be a boolean."]]
 
@@ -214,6 +214,11 @@
     :default  :exponential
     :parse-fn keyword
     :validate [#{:exponential :uniform :zipf} "Must be one of exponential, uniform, or zipf."]]
+
+   [nil "--kill-with SIGNAL" "What signal should we use to kill SpacetimeDB?"
+    :default  :KILL
+    :parse-fn keyword
+    :validate [#{:KILL :TERM} (cli/one-of #{:KILL :TERM})]]
 
    [nil "--lazyfs? BOOLEAN" "Mount data dir in a lazy filesystem that can lose non fsync'd writes?"
     :default  false
