@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "docker/**"
+      - "src/**"
+      - "stdb-client/**"
+      - "project.cli"
   schedule:
     - cron: "15 0 * * 0" # every Sunday at 00:15
   workflow_dispatch:
