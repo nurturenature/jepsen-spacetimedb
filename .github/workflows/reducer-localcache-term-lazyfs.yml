@@ -13,12 +13,11 @@ on:
         type: string
         required: true
         default: "[ 'lazyfs,kill-start' ]"
-      # need to increase rates as mixed append/r txns are just failed
       rates:
         description: "Rates (as JSON)"
         type: string
         required: true
-        default: "[ '500', '1000', '5000' ]"
+        default: "[ '100', '500', '1000' ]"
       time-limits:
         description: "Time limits (as JSON)"
         type: string

@@ -50,6 +50,50 @@
                #{:r}          :local-cache
                #{:append :r}  :procedure}}))
 
+(defn- seq-mops
+  "Takes a `wr` `generator` with single mop txns and returns a lazy seq of mops."
+  [generator]
+  (->> generator
+       (map :value)
+       (map first)))
+
+(defn- batch-generator
+  "Given a `wr` `generator`, returns a seq of ops that batch the `:append`s and `:r`eads.
+   i.e. each txn is exclusively `:append`s or `:r`eads."
+  [generator]
+  (->> {:mops (seq-mops generator)}
+       (iterate (fn batcher [{:keys [mops] :as _state}]
+                  (loop [mops mops
+                         on-f nil
+                         txn  nil]
+                    (let [[f _k _v :as mop] (first mops)
+                          mops'             (rest  mops)]
+                      (cond
+                        ; first mop in txn
+                        (nil? on-f)
+                        (recur mops'  ; consume new mop
+                               f      ; txn of f's
+                               [mop]) ; start txn
+
+                        ; new mop has same f as as current txn
+                        (= f on-f)
+                        (recur mops'           ; consume new mop
+                               on-f            ; same f
+                               (conj txn mop)) ; add new mop to txn
+
+                        ; new f should start a new txn
+                        (not= f on-f)
+                        {:mops mops      ; do not consume new mop
+                         :on-f nil       ; start a new txn
+                         :txn  txn}))))) ; txn of all :append or :r
+
+       (map :txn)
+       (drop 1) ; 1st is nil, just initial `state` to `iterate`
+       (map (fn [txn]
+              {:type  :invoke
+               :f     :txn
+               :value txn}))))
+
 (defn reducer-localcache-only
   "A [[list-append]] workload that uses:
    - reducer for all append txns
@@ -57,13 +101,16 @@
    - local client cache for all read txns"
   [opts]
   (let [opts (assoc opts
-                    :min-txn-length 1   ; insure smaller txns
-                    :max-txn-length 4)] ; better chance of all :append or all :r txns
+                    :min-txn-length 1  ; need single mop :value [[f k v]] ops
+                    :max-txn-length 1) ; to wrap in a `batcher-generator`
+        {:keys [generator] :as list-append} (list-append opts)
+        generator (batch-generator generator)]
     (merge
-     (list-append opts)
-     {:fs->stdb {#{:append}     :reducer
-                 #{:r}          :local-cache
-                 #{:append :r}  :fail}})))
+     list-append
+     {:generator generator}
+     {:fs->stdb  {#{:append}    :reducer
+                  #{:r}         :local-cache
+                  #{:append :r} :fail}})))
 
 (def workloads
   "A map of workload names to functions that take CLI options and return
