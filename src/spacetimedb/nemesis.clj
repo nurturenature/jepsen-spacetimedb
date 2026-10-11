@@ -178,10 +178,11 @@
     this)
 
   (invoke!
-    [_this test {:keys [f] :as op}]
+    [_this test {:keys [f value] :as op}]
+    (assert value)
     (let [result (case f
                    :checkpoint
-                   (c/with-node test stdb/spacetimedb-host-name
+                   (c/with-node test value
                      (stdb-lazyfs/unsynced-data-report! lazyfs-map)
                      (lazyfs/checkpoint! lazyfs-map))
 
@@ -189,16 +190,17 @@
                    :noop
 
                    :power-glitch
-                   (c/with-node test stdb/spacetimedb-host-name
-                     (db/kill! db test stdb/spacetimedb-host-name)
-                     (stdb-lazyfs/unsynced-data-report! lazyfs-map)
-                     (lazyfs/lose-unfsynced-writes! lazyfs-map)
-                     (db/start! db test stdb/spacetimedb-host-name)
-                     :power-restored)
+                   (do
+                     (c/with-node test value
+                       (db/kill! db test value)
+                       (stdb-lazyfs/unsynced-data-report! lazyfs-map)
+                       (lazyfs/lose-unfsynced-writes! lazyfs-map)
+                       (db/start! db test value))
+                     {value :power-restored})
 
                    :start-spacetimedb
-                   (c/with-node test stdb/spacetimedb-host-name
-                     (db/start! db test stdb/spacetimedb-host-name)))]
+                   (c/with-node test value
+                     (db/start! db test value)))]
       (assoc op :value result)))
 
   (teardown!
@@ -206,7 +208,9 @@
 
 (defn power-glitch-package
   "A nemesis and generator package to simulate a power outage.
-   
+   ```
+   :power-glitch {}
+   ```
    ```bash
    --nemesis power-glitch
    ```
@@ -215,16 +219,21 @@
   (when (contains? faults :power-glitch)
     (let [gen        (->> {:type  :info
                            :f     :power-glitch
-                           :value nil}
+                           :value stdb/spacetimedb-host-name}
+                          repeat
                           (gen/stagger (or interval nc/default-interval)))
           final-gen  {:type  :info
                       :f     :start-spacetimedb
-                      :value nil}
+                      :value stdb/spacetimedb-host-name}
           lazyfs-map (loop [db db]
                        (cond
+                         ; lazyfs-stdb
+                         (contains? db :lazyfs-db)
+                         (recur (:lazyfs-db db))
+
                          ; lazyfs DB
-                         (contains? db :lazyfs-map)
-                         (:lazyfs-map db)
+                         (contains? db :lazyfs)
+                         (:lazyfs db)
 
                          ; wrapped DB
                          (contains? db :db)
