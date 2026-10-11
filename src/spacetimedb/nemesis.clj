@@ -8,7 +8,6 @@
              [net :as net]
              [random :as rand]]
             [jepsen.nemesis.combined :as nc]
-            [spacetimedb.lazyfs :as stdb-lazyfs]
             [spacetimedb.db.spacetimedb :as stdb]))
 
 (defn kill-node!
@@ -164,6 +163,12 @@
                            :stop  #{:heal-network}
                            :color "#D1E8A0"}}})))
 
+(defn unsynced-data-report!
+  "Generate a report of the unsynced data for the given `lazyfs-map` in the lazyfs log file."
+  [lazyfs-map]
+  (lazyfs/fifo! lazyfs-map "lazyfs::unsynced-data-report")
+  :done)
+
 (def power-glitch-commands
   #{:checkpoint :noop :power-glitch :start-spacetimedb})
 
@@ -182,7 +187,7 @@
     (let [result (case f
                    :checkpoint
                    (c/with-node test value
-                     (stdb-lazyfs/unsynced-data-report! lazyfs-map)
+                     (unsynced-data-report! lazyfs-map)
                      (lazyfs/checkpoint! lazyfs-map))
 
                    :noop
@@ -192,7 +197,7 @@
                    (do
                      (c/with-node test value
                        (db/kill! db test value)
-                       (stdb-lazyfs/unsynced-data-report! lazyfs-map)
+                       (unsynced-data-report! lazyfs-map)
                        (lazyfs/lose-unfsynced-writes! lazyfs-map)
                        (db/start! db test value))
                      {value :power-restored})
@@ -269,7 +274,6 @@
   (let [opts (update opts :faults set)]
     (->> [(kill-start-package opts)
           (network-package opts)
-          (stdb-lazyfs/lazyfs-package opts)
           (power-glitch-package opts)]
          (concat (nc/nemesis-packages opts))
          (filter :generator)

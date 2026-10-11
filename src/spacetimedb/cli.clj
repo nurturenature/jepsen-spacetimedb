@@ -11,7 +11,6 @@
             [jepsen.os.debian :as debian]
             [spacetimedb
              [checker :as stdb-checker]
-             [lazyfs :as lazyfs]
              [nemesis :as nemesis]
              [workload :as workload]]
             [spacetimedb.db
@@ -27,7 +26,6 @@
   #{:clock       ; requires real VMs
     :file-corruption
     :kill-start
-    :lazyfs
     :network
     :partition
     :pause
@@ -73,12 +71,11 @@
 
 (defn test-name
   "Given opts, returns a meaningful test name."
-  [{:keys [consistency-models concurrency lazyfs-behaviors nemesis nodes rate spacetimedb-node time-limit workload] :as _opts}]
+  [{:keys [consistency-models concurrency nemesis nodes rate spacetimedb-node time-limit workload] :as _opts}]
   (let [nodes   (into #{} nodes)
         nemesis (into (sorted-set) nemesis)]
     (str (name workload)
          "-" (str/join "," (map name nemesis))
-         (when (contains? nemesis :lazyfs) (str "-" (->> lazyfs-behaviors (map name) (str/join ","))))
          "-" (->> spacetimedb-node
                   (disj nodes)
                   (count)) "c" ; SpacetimeDB server doesn't count as a client
@@ -89,7 +86,7 @@
 
 (defn spacetimedb-test
   "Given options from the CLI, constructs a test map."
-  [{:keys [check-final-txns? ignore-logs? lazyfs? lazyfs-behaviors lazyfs-targets universal-timeout] :as opts}]
+  [{:keys [check-final-txns? ignore-logs? lazyfs? universal-timeout] :as opts}]
   (let [workload-name (:workload opts)
         workload ((workload/workloads workload-name) opts)
         db       (:db workload)
@@ -103,8 +100,6 @@
                                                     :file stdb/spacetimedb-data-dir
                                                     :probability {:distribution :one-of :values [1e-3 1e-4 1e-5]}}]}
                    :kill-start {:targets [[stdb/spacetimedb-host-name] nil]} ; favor killing the server node
-                   :lazyfs     {:targets   lazyfs-targets
-                                :behaviors lazyfs-behaviors}
                    :network    {:targets   [nil]
                                 :behaviors [{:delay {}} {:corrupt {}}]}
                    :partition  {:targets [:majority]}
@@ -225,17 +220,6 @@
     :default  false
     :parse-fn parse-boolean
     :validate [boolean? "Must be a boolean."]]
-
-   [nil "--lazyfs-behaviors STORAGE-FAULTS" "Collection of storage faults to use with lazyfs."
-    :default  lazyfs/lazyfs-commands
-    :parse-fn parse-keywords-spec
-    :validate [(partial every? lazyfs/lazyfs-commands)
-               (str "Behaviors must be " lazyfs/lazyfs-commands ".")]]
-
-   [nil "--lazyfs-targets NODES" "List of nodes to target for storage faults using lazyfs."
-    :default  [stdb/spacetimedb-host-name]
-    :parse-fn parse-nodes-spec
-    :validate [seq "Must be a list of nodes."]]
 
    [nil "--max-txn-length NUM" "Maximum number of operations per txn."
     :default  8
