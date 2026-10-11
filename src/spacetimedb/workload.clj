@@ -23,7 +23,6 @@
         stdb (if lazyfs?
                (stdb-node/lazyfs-stdb)
                (stdb-node/stdb))
-        stdb (stdb-node/watched-stdb stdb watchdog-timeout)
         cndb (client-node/client-node)
         cndb (client-node/watched-client-node cndb watchdog-timeout)
         roles        (stdb-role/roles-map opts)
