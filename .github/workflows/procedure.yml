@@ -1,4 +1,4 @@
-name: list-append-kill-start
+name: procedure
 
 on:
   workflow_dispatch:
@@ -12,7 +12,7 @@ on:
         description: "Nemeses (as JSON)"
         type: string
         required: true
-        default: "[ 'kill-start' ]"
+        default: "[ 'none' ]"
       rates:
         description: "Rates (as JSON)"
         type: string
@@ -40,7 +40,7 @@ on:
         default: "{'repeat': [ '1', '2', '3', '4', '5', '6', '7', '8' ], 'timeout-minutes': 25 }"
 
 jobs:
-  list-append-kill-start:
+  procedure:
     uses: nurturenature/jepsen-spacetimedb/.github/workflows/jepsen-test-runner.yml@main
     with:
       workloads: ${{ inputs.workloads}}
