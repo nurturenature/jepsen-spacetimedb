@@ -20,8 +20,19 @@
                                    h/client-ops
                                    (h/remove #(= :invoke (:type %))))
             node->final-type  (->> history
-                                   (reduce (fn [acc {:keys [node type] :as _op}]
-                                             (assoc acc node type))
+                                   (reduce (fn [acc {:keys [error node type] :as op}]
+                                             (cond
+                                               ; op has expected :node
+                                               (not (nil? node))
+                                               (assoc acc node type)
+
+                                               ; op is missing :node due to Jepsen timing out the client
+                                               (and (nil? node) (= error :jepsen.client/timeout))
+                                               acc
+
+                                               ; unexpected!
+                                               :else
+                                               (throw (Exception. (str "Expected :node in op: " op)))))
                                            (sorted-map)))
             final-nodes       (->> node->final-type keys (into #{}))
             missing-nodes     (->> (set/difference client-nodes final-nodes) (into (sorted-set)))
