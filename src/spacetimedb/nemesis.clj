@@ -179,7 +179,6 @@
 
   (invoke!
     [_this test {:keys [f value] :as op}]
-    (assert value)
     (let [result (case f
                    :checkpoint
                    (c/with-node test value
@@ -217,10 +216,16 @@
    "
   [{:keys [db faults interval] :as _opts}]
   (when (contains? faults :power-glitch)
-    (let [gen        (->> {:type  :info
-                           :f     :power-glitch
-                           :value stdb/spacetimedb-host-name}
-                          repeat
+    (let [gen        (->> (gen/cycle
+                           [; let db do work, i.e. writes
+                            {:type  :info
+                             :f     :noop
+                             :value nil}
+
+                            ; power glitch
+                            {:type  :info
+                             :f     :power-glitch
+                             :value stdb/spacetimedb-host-name}])
                           (gen/stagger (or interval nc/default-interval)))
           final-gen  {:type  :info
                       :f     :start-spacetimedb
