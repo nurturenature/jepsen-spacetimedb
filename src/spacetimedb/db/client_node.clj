@@ -4,8 +4,7 @@
             [clojure.tools.logging :refer [info]]
             [jepsen
              [db :as db]
-             [control :as c]
-             [util :as u]]
+             [control :as c]]
             [jepsen.control.util :as cu]
             [jepsen.db.watchdog :as watchdog]
             [jepsen.os.debian :as debian]
@@ -54,22 +53,25 @@
   (c/cd stdb/client-dir
         (c/exec :npm :install)))
 
-(defn ping-client!
-  "Tries to ping the client for the given node."
+(defn ping-client
+  "Tries to HTTP get a known URI for the client on the given `node`.
+   Tries once with `universal-timeout`."
   [{:keys [universal-timeout] :as _test} node]
   (let [uri (str (client-uri node) "/ping")]
-    (http/get uri
-              {:body               nil
-               :content-type       "application/text"
-               :socket-timeout     universal-timeout
-               :connection-timeout universal-timeout
-               :accept             "application/json"})
-    true))
+    (try (http/get uri
+                   {:body               nil
+                    :content-type       "application/text"
+                    :socket-timeout     universal-timeout
+                    :connection-timeout universal-timeout
+                    :accept             "application/json"})
+         true
+         (catch Exception _
+           false))))
 
 (defrecord ClientNode []
   db/DB
   (setup!
-    [this {:keys [force-reinstall-repository? universal-timeout] :as test} node]
+    [this {:keys [force-reinstall-repository?] :as test} node]
     (info "setting up client-node" node)
     (install-packages)
 
@@ -77,20 +79,7 @@
 
     ; assuming SpacetimeDB server is already started and available for connections
 
-    (u/await-fn (fn start-client-node []
-                  (db/start! this test node)
-                  (u/await-fn (fn ping-client-node []
-                                (ping-client! test node))
-                              {:retry-interval 1000
-                               :log-interval   universal-timeout
-                               :log-message    "Waiting for client node ping"
-                               :timeout        (* 3 universal-timeout)}))
-                {:retry-interval (+ 1000 universal-timeout)
-                 :log-interval   (+ 1000 universal-timeout)
-                 :log-message    "Waiting for client node startup"
-                 :timeout        (-> universal-timeout
-                                     (+ 1000)
-                                     (* 3))}))
+    (db/start! this test node))
 
   (teardown!
     [this test node]
@@ -156,7 +145,6 @@
   "Given a client-node DB and an interval,
    returns client-node with a watchdog to monitor and restart every interval."
   [client-node interval]
-  (let [opts {:running? (fn running? [_test _node]
-                          (cu/daemon-running? pid-file))
+  (let [opts {:running? ping-client
               :interval interval}]
     (watchdog/db opts client-node)))

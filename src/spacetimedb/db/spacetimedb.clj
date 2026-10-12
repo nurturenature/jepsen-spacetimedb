@@ -141,16 +141,17 @@
 
 (defn spacetimedb-alive?
   "Tests the SpacetimeDB server for liveness by executing
-   `spacetime server ping local`."
+   `spacetime server ping local`.
+   Will retry for `universal-timeout`."
   [{:keys [spacetimedb-node universal-timeout] :as test}]
   (c/with-node test spacetimedb-node
     (try
       (u/await-fn (fn ping-spacetimedb []
                     (c/exec spacetimedb-binary :server :ping :local))
-                  {:retry-interval 500
-                   :log-interval   500
+                  {:retry-interval 100
+                   :log-interval   1000
                    :log-message    "waiting for SpacetimeDB ping to succeed"
-                   :timeout        (* 2 universal-timeout)})
+                   :timeout        universal-timeout})
       true
       (catch Exception _
         false))))
@@ -159,7 +160,7 @@
 (defrecord STDB []
   db/DB
   (setup!
-    [this {:keys [force-reinstall-repository? force-reinstall-spacetimedb? lazyfs? spacetimedb-version universal-timeout] :as test} node]
+    [this {:keys [force-reinstall-repository? force-reinstall-spacetimedb? lazyfs? spacetimedb-version] :as test} node]
     (info "setting up SpacetimeDB on" node)
 
     (install-packages)
@@ -169,11 +170,8 @@
 
     (configure-test-db force-reinstall-repository?)
 
-    (let [alive? (u/timeout (* 4 universal-timeout) ::timed-out
-                            (while (not (spacetimedb-alive? test))
-                              (info "waiting for SpacetimeDB to be alive")))]
-      (when (= ::timed-out alive?)
-        (throw+ {:type :error :error "unable to start SpacetimeDB"})))
+    (when (not (spacetimedb-alive? test))
+      (throw+ {:type :error :error "Unable to start SpacetimeDB!"}))
 
     (info "SpacetimeDB setup on" node))
 
