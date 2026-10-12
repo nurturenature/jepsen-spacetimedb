@@ -65,8 +65,14 @@
   []
   (debian/update!)
   (debian/install [:extrepo])
-  (c/su
-   (c/exec :extrepo :enable :node_25.x))
+  ; FORNOW, GitHub Actions regularly fail when connecting to the Debian repo
+  (u/await-fn (fn []
+                (c/su
+                 (c/exec :extrepo :enable :node_25.x)))
+              {:retry-interval 500
+               :log-interval   1000
+               :log-message    "retrying: extrepo enable node_25.x"
+               :timeout        3000})
   (debian/update!)
   (debian/install [:nodejs]))
 
