@@ -339,6 +339,8 @@ Simulating a power glitch was able to expose unfsynced data
 It's mostly(?) been addressed in SpacetimeDB 2.2.0.
 At the current time, there remains unsynced data, but it appears that its loss does not effect the server beng restarted.([issue update](https://github.com/clockworklabs/SpacetimeDB/issues/4886#issuecomment-5975917190))
 
+The tests did find another sync issue, transactions in procedures are not respecting confirmed reads([issue update](https://github.com/clockworklabs/SpacetimeDB/issues/4886#issuecomment-6032544418)).
+
 ##### A Successful Test Losing Unfsynced Writes and Kills/Starts
 
 Note how the server always is able to restart, clients reconnect, and transactions resume.

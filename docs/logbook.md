@@ -15,6 +15,8 @@ The issue, [un-fsync'd writes #4886](https://github.com/clockworklabs/SpacetimeD
 It's mostly(?) been addressed in SpacetimeDB 2.2.0.
 At the current time, there remains unsynced data, but it appears that its loss does not effect the server beng restarted.([issue update](https://github.com/clockworklabs/SpacetimeDB/issues/4886#issuecomment-5975917190))
 
+The tests did find another sync issue, transactions in procedures are not respecting confirmed reads([issue update](https://github.com/clockworklabs/SpacetimeDB/issues/4886#issuecomment-6032544418)).
+
 ----
 
 ## False Errors
