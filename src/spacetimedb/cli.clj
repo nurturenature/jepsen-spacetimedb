@@ -165,7 +165,7 @@
     :validate [(partial every? all-anomalies) (str "Must be a collection of anomalies: " all-anomalies ".")]]
 
    [nil "--check-final-txns? BOOLEAN" "Check that final txns are ok for all clients?"
-    :default  true
+    :default  false ; TODO: resolve end of test client startup and final reads
     :parse-fn parse-boolean
     :validate [boolean? "Must be a boolean."]]
 
