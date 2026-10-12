@@ -1,4 +1,4 @@
-name: procedure-kill-start
+name: procedure-kill
 
 on:
   workflow_dispatch:
@@ -40,7 +40,7 @@ on:
         default: "{'repeat': [ '1', '2', '3', '4', '5', '6', '7', '8' ], 'timeout-minutes': 25 }"
 
 jobs:
-  procedure-kill-start:
+  procedure-kill:
     uses: nurturenature/jepsen-spacetimedb/.github/workflows/jepsen-test-runner.yml@main
     with:
       workloads: ${{ inputs.workloads}}
