@@ -22,7 +22,7 @@ on:
         description: "Time limits (as JSON)"
         type: string
         required: true
-        default: "[ '100', '500', '1000' ]"
+        default: "[ '60', '300', '600', '900' ]"
       concurrency:
         description: "Concurrency (as JSON)"
         type: string
@@ -60,7 +60,7 @@ on:
         description: "Time limits (as JSON)"
         type: string
         required: false
-        default: "[ '100', '500', '1000' ]"
+        default: "[ '60', '300', '600', '900' ]"
       concurrency:
         description: "Concurrency (as JSON)"
         type: string

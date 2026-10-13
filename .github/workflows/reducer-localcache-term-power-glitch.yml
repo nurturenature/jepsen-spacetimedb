@@ -22,7 +22,7 @@ on:
         description: "Time limits (as JSON)"
         type: string
         required: true
-        default: "[ '100', '500', '1000' ]"
+        default: "[ '60', '300', '600', '900' ]"
       concurrency:
         description: "Concurrency (as JSON)"
         type: string
@@ -38,7 +38,7 @@ on:
         description: "A JSON Map of args (workaround GitHub max inputs)"
         type: string
         required: true
-        default: "{'repeat': [ '1', '2', '3', '4', '5', '6', '7', '8' ], 'timeout-minutes': 30 }"
+        default: "{'repeat': [ '1', '2', '3', '4', '5', '6', '7' ], 'timeout-minutes': 30 }"
 
 jobs:
   reducer-localcache-term-power-glitch:
