@@ -16,7 +16,7 @@
 (defn list-append
   "A SpacetimeDB workload where all appends/reads to a keyed append only list
    happen in a transaction in a `procedure`."
-  [{:keys [key-count lazyfs? min-txn-length max-txn-length max-writes-per-key universal-timeout] :as opts}]
+  [{:keys [key-count lazyfs? min-txn-length max-txn-length max-writes-per-key universal-timeout watch-client-node?] :as opts}]
   (assert (and key-count min-txn-length max-txn-length max-writes-per-key)
           (str "opts must specify {key-count min-txn-length max-txn-length max-writes-per-key}: " opts))
   (let [watchdog-timeout (+ 1000 universal-timeout)
@@ -24,7 +24,9 @@
                (stdb-node/lazyfs-stdb)
                (stdb-node/stdb))
         cndb (client-node/client-node)
-        cndb (client-node/watched-client-node cndb watchdog-timeout)
+        cndb (if watch-client-node?
+               (client-node/watched-client-node cndb watchdog-timeout)
+               cndb)
         roles        (stdb-role/roles-map opts)
         roles-db     (stdb-role/roles-based-db stdb cndb)
         roles-client (stdb-role/restricted-client (stdb-client/stdb-client universal-timeout))]

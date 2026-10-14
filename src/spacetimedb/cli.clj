@@ -99,9 +99,12 @@
                                      :corruptions [{:type :bitflip
                                                     :file stdb/spacetimedb-data-dir
                                                     :probability {:distribution :one-of :values [1e-3 1e-4 1e-5]}}]}
-                   :kill-start {:targets [[stdb/spacetimedb-host-name] nil]} ; favor killing the server node
-                   :network    {:targets   [nil]
-                                :behaviors [{:delay {}} {:corrupt {}}]}
+                   :kill-start {:targets [[stdb/spacetimedb-host-name] nil]} ; favor killing the server
+                   :network    {:targets   [[stdb/spacetimedb-host-name] :majority] ; favor impacting the server's network
+                                :behaviors [{:delay {:time         :1000ms
+                                                     :jitter       :100ms
+                                                     :correlation  :25%
+                                                     :distribution :normal}}]}
                    :partition  {:targets [:majority]}
                    :pause      {:targets [nil]}
                    :power-glitch {}})
@@ -265,6 +268,11 @@
     :default  3000
     :parse-fn parse-long
     :validate [pos? "Must be a positive integer"]]
+
+   [nil "--watch-client-node? BOOLEAN" "Should client nodes be watched? i.e. have a watchdog?"
+    :default  true
+    :parse-fn parse-boolean
+    :validate [boolean? "Must be a boolean."]]
 
    ["-w" "--workload NAME" "What workload should we run?"
     :default  workload/default-workload

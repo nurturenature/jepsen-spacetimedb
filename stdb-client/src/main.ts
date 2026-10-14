@@ -38,6 +38,7 @@ async function main(): Promise<void> {
   console.info(`\tURI: ${SPACETIMEDB_HOST}`);
   console.info(`\tModule: ${SPACETIMEDB_DB_NAME}`);
   console.info(`\twithConfirmedReads: ${CONFIRMED_READS}`);
+  console.info(`\twithAutomaticReconnect`);
 
   // Build and establish connection
   DbConnection
@@ -49,6 +50,7 @@ async function main(): Promise<void> {
     .onConnect(onConnect)
     .onDisconnect(onDisconnect)
     .onConnectError(onConnectError)
+    .withAutomaticReconnect()
     .build();
 }
 
