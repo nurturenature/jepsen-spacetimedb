@@ -132,12 +132,9 @@ function client_endpoint(conn: DbConnection): Server {
             const txn: TXN = JSON.parse(body) as TXN;
 
             // txn can timeout
-            const timer_id = setTimeout(() => {
-              throw new Error('Transaction timed out!');
-            }, CLIENT_TIMEOUT);
-
-            const txn_response = await conn.procedures.txn({ txn: txn });
-            clearTimeout(timer_id);
+            const txn_promise = conn.procedures.txn({ txn: txn });
+            const timeout_promise = new Promise((_, reject) => setTimeout(() => reject(new Error('Transaction in procedure timed out!')), CLIENT_TIMEOUT));
+            const txn_response = await Promise.race([txn_promise, timeout_promise]);
 
             const result = JSON.parse(txn_response) as TXN_RESPONSE;
 
