@@ -25,10 +25,11 @@
 
 (defn client-env
   "Given a test, constructs an env map to invoke client with."
-  [{:keys [confirmed-reads? spacetimedb-node universal-timeout] :as _test}]
+  [{:keys [automatic-reconnect? confirmed-reads? spacetimedb-node universal-timeout] :as _test}]
   {:SPACETIMEDB_HOST    (str "ws://" spacetimedb-node ":3000")
    :SPACETIMEDB_DB_NAME stdb/spacetimedb-db-name
    :CONFIRMED_READS     confirmed-reads?
+   :AUTOMATIC_RECONNECT automatic-reconnect?
    :CLIENT_PORT         3000
    :CLIENT_TIMEOUT      universal-timeout})
 

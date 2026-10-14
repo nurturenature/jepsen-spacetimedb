@@ -167,6 +167,11 @@
     :parse-fn parse-keywords-spec
     :validate [(partial every? all-anomalies) (str "Must be a collection of anomalies: " all-anomalies ".")]]
 
+   [nil "--automatic-reconnect? BOOLEAN" "Should the SpacetimeDB client automatically reconnect?"
+    :default  true
+    :parse-fn parse-boolean
+    :validate [boolean? "Must be a boolean."]]
+
    [nil "--check-final-txns? BOOLEAN" "Check that final txns are ok for all clients?"
     :default  false ; TODO: resolve end of test client startup and final reads
     :parse-fn parse-boolean

@@ -14,6 +14,7 @@ import { Identity } from 'spacetimedb';
 const SPACETIMEDB_HOST = process.env.SPACETIMEDB_HOST ?? 'ws://spacetimedb:3000';
 const SPACETIMEDB_DB_NAME = process.env.SPACETIMEDB_DB_NAME ?? 'test-db';
 const CONFIRMED_READS = JSON.parse(process.env.CONFIRMED_READS ?? 'true');
+const AUTOMATIC_RECONNECT = JSON.parse(process.env.AUTOMATIC_RECONNECT ?? 'true');
 const CLIENT_PORT = Number.parseInt(process.env.CLIENT_PORT || '3000');
 const CLIENT_TIMEOUT = Number.parseInt(process.env.CLIENT_TIMEOUT || '3000');
 
@@ -41,7 +42,7 @@ async function main(): Promise<void> {
   console.info(`\twithAutomaticReconnect`);
 
   // Build and establish connection
-  DbConnection
+  let db_builder = DbConnection
     .builder()
     .withUri(SPACETIMEDB_HOST)
     .withDatabaseName(SPACETIMEDB_DB_NAME)
@@ -49,9 +50,9 @@ async function main(): Promise<void> {
     .withToken(loadToken())
     .onConnect(onConnect)
     .onDisconnect(onDisconnect)
-    .onConnectError(onConnectError)
-    .withAutomaticReconnect()
-    .build();
+    .onConnectError(onConnectError);
+  db_builder = AUTOMATIC_RECONNECT ? db_builder.withAutomaticReconnect() : db_builder;
+  db_builder.build();
 }
 
 // REST API for Jepsen transactions
