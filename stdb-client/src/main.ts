@@ -39,7 +39,7 @@ async function main(): Promise<void> {
   console.info(`\tURI: ${SPACETIMEDB_HOST}`);
   console.info(`\tModule: ${SPACETIMEDB_DB_NAME}`);
   console.info(`\twithConfirmedReads: ${CONFIRMED_READS}`);
-  console.info(`\twithAutomaticReconnect`);
+  console.info(`\twithAutomaticReconnect: ${AUTOMATIC_RECONNECT}`);
 
   // Build and establish connection
   let db_builder = DbConnection
@@ -132,10 +132,12 @@ function client_endpoint(conn: DbConnection): Server {
           case "POST" + "/lists/txn/procedure":
             const txn: TXN = JSON.parse(body) as TXN;
 
-            // txn can timeout
-            const txn_promise = conn.procedures.txn({ txn: txn });
-            const timeout_promise = new Promise((_, reject) => setTimeout(() => reject(new Error('Transaction in procedure timed out!')), CLIENT_TIMEOUT));
-            const txn_response = await Promise.race([txn_promise, timeout_promise]);
+            // TODO: should a txn timeout?
+            // if so, here? or let the Jepsen client timeout?
+            // const txn_promise = conn.procedures.txn({ txn: txn });
+            // const timeout_promise = new Promise((_, reject) => setTimeout(() => reject(new Error('Transaction in procedure timed out!')), CLIENT_TIMEOUT));
+            // const txn_response = await Promise.race([txn_promise, timeout_promise]);
+            const txn_response = await conn.procedures.txn({ txn: txn });
 
             const result = JSON.parse(txn_response) as TXN_RESPONSE;
 
