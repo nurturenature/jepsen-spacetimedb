@@ -3,8 +3,9 @@
   (:require [clj-http.client :as http]
             [clojure.tools.logging :refer [info]]
             [jepsen
+             [control :as c]
              [db :as db]
-             [control :as c]]
+             [util :as u]]
             [jepsen.control.util :as cu]
             [jepsen.db.watchdog :as watchdog]
             [jepsen.os.debian :as debian]
@@ -80,7 +81,12 @@
 
     ; assuming SpacetimeDB server is already started and available for connections
 
-    (db/start! this test node))
+    (db/start! this test node)
+
+    (u/await-fn
+     (fn []
+       (when-not (ping-client test node)
+         (throw (Exception.))))))
 
   (teardown!
     [this test node]
