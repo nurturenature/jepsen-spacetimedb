@@ -49,6 +49,7 @@ async function main(): Promise<void> {
     .withConfirmedReads(CONFIRMED_READS)
     .withToken(loadToken())
     .onConnect(onConnect)
+    .onAutomaticReconnect(onAutomaticReconnect)
     .onDisconnect(onDisconnect)
     .onConnectError(onConnectError);
   db_builder = AUTOMATIC_RECONNECT ? db_builder.withAutomaticReconnect() : db_builder;
@@ -156,6 +157,8 @@ function client_endpoint(conn: DbConnection): Server {
         res.end(response);
 
       } catch (error: any) {
+        // DisconnectedError -> :fail
+        // UnknownCallResultError -> :info
         console.error(`[endpoint] error: ${error.toString()}`);
         const response = JSON.stringify({ 'type': 'info', 'error': error.toString() });
 
@@ -232,16 +235,37 @@ function onConnect(
   });
 }
 
-function onDisconnect(ctx: ErrorContext, error?: Error): void {
+function onAutomaticReconnect(
+  _conn: DbConnection,
+  identity: Identity,
+  token: string
+): void {
+  console.info();
+  console.info('Automatically Reconnected to SpacetimeDB!');
+  console.info(`\tIdentity: ${identity.toHexString().slice(0, 16)}...`);
+
+  // Save token for future connections
+  saveToken(token);
+}
+
+function onDisconnect(ctx: ErrorContext,
+  error?: Error,
+  nextReconnectAttempt?: number,
+  nextReconnectDelayMs?: number): void {
   if (error) {
     console.error();
     console.error('onDisconnect:');
     console.error('\tctx.event: ', ctx.event);
     console.error('\terror:', error);
     console.error();
-    console.error('Exiting with exit code: ', 1);
-    console.error();
-    process.exit(1);
+
+    if (nextReconnectAttempt !== undefined) {
+      console.error(`Retry ${nextReconnectAttempt} in ${nextReconnectDelayMs} ms`);
+    } else {
+      console.error('Exiting with exit code: ', 1);
+      console.error();
+      process.exit(1);
+    }
   } else {
     console.log();
     console.log('onDisconnect:');
@@ -253,15 +277,23 @@ function onDisconnect(ctx: ErrorContext, error?: Error): void {
   }
 }
 
-function onConnectError(ctx: ErrorContext, error?: Error): void {
+function onConnectError(ctx: ErrorContext,
+  error: Error,
+  nextReconnectAttempt?: number,
+  nextReconnectDelayMs?: number): void {
   console.error();
   console.error('onConnectError:');
   console.error('\tctx.event: ', ctx.event);
   console.error('\terror:', error);
   console.error();
-  console.error('Exiting with exit code: ', 1);
-  console.error();
-  process.exit(1);
+
+  if (nextReconnectAttempt !== undefined) {
+    console.error(`Retry ${nextReconnectAttempt} in ${nextReconnectDelayMs} ms`);
+  } else {
+    console.error('Exiting with exit code: ', 1);
+    console.error();
+    process.exit(1);
+  }
 }
 
 // Token persistence (file-based for Node.js instead of localStorage)
