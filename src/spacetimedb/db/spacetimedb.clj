@@ -2,8 +2,8 @@
   "A local SpacetimeDB database."
   (:require [clojure.tools.logging :refer [info]]
             [jepsen
-             [db :as db]
              [control :as c]
+             [db :as db]
              [lazyfs :as lazyfs]
              [util :as u]]
             [jepsen.control.util :as cu]
@@ -191,11 +191,11 @@
     (c/su
      (c/exec :rm :-rf log-file pid-file)))
 
-  ;; SpacetimeDB doesn't have `primaries`.
+  ;; SpacetimeDB is the primary.
   db/Primary
   (primaries
     [_db _test]
-    nil)
+    [spacetimedb-host-name])
 
   (setup-primary!
     [_db _test _node])
@@ -258,14 +258,14 @@
     (db/teardown! lazyfs-db test node)
     this)
 
-  ; SpacetimeDB doesn't have `primaries`
   db/Primary
   (primaries
-    [_db _test]
-    nil)
+    [_db test]
+    (db/primaries stdb-db test))
 
   (setup-primary!
-    [_db _test _node])
+    [_db test node]
+    (db/setup-primary! stdb-db test node))
 
   db/LogFiles
   (log-files
