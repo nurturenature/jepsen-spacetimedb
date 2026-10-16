@@ -16,7 +16,6 @@ const SPACETIMEDB_DB_NAME = process.env.SPACETIMEDB_DB_NAME ?? 'test-db';
 const CONFIRMED_READS = JSON.parse(process.env.CONFIRMED_READS ?? 'true');
 const AUTOMATIC_RECONNECT = JSON.parse(process.env.AUTOMATIC_RECONNECT ?? 'true');
 const CLIENT_PORT = Number.parseInt(process.env.CLIENT_PORT || '3000');
-const CLIENT_TIMEOUT = Number.parseInt(process.env.CLIENT_TIMEOUT || '3000');
 
 // TODO: put types in a shared type location for SpacetimeDB server
 
@@ -111,13 +110,13 @@ function client_endpoint(conn: DbConnection): Server {
           case "POST" + "/lists/appends/reducer":
             const appends: TXN = JSON.parse(body) as TXN;
 
-            // txn can timeout
-            const appends_timer = setTimeout(() => {
-              throw new Error('Transaction timed out!');
-            }, CLIENT_TIMEOUT);
+            // TODO: should a txn timeout?
+            // if so, here? or let the Jepsen client timeout?
+            // const txn_promise = conn.reducers.appends({ txn: txn });
+            // const timeout_promise = new Promise((_, reject) => setTimeout(() => reject(new Error('Transaction in procedure timed out!')), CLIENT_TIMEOUT));
+            // const txn_response = await Promise.race([txn_promise, timeout_promise]);
 
             await conn.reducers.appends({ txn: appends });
-            clearTimeout(appends_timer);
 
             const appends_result: TXN_RESPONSE = [];
             for (const { k, v } of appends) {
