@@ -105,7 +105,7 @@
                                                      :jitter       :100ms
                                                      :correlation  :25%
                                                      :distribution :normal}}]}
-                   :partition  {:targets [:majority]}
+                   :partition  {:targets [:primaries]}
                    :pause      {:targets [nil]}
                    :power-glitch {}})
         quiesce-timeout (-> universal-timeout (* 4) (quot 1000))

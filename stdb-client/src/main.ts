@@ -33,6 +33,9 @@ type TXN = MOP[];
 // TXN response
 type TXN_RESPONSE = (['r', number, null | number[]] | ['append', number, number])[];
 
+// only start http server after all subscriptions have been applied
+let subscriptions_applied = false;
+
 // Main entry point
 async function main(): Promise<void> {
   console.info(`Connecting to SpacetimeDB...`);
@@ -53,7 +56,32 @@ async function main(): Promise<void> {
     .onDisconnect(onDisconnect)
     .onConnectError(onConnectError);
   db_builder = AUTOMATIC_RECONNECT ? db_builder.withAutomaticReconnect() : db_builder;
-  db_builder.build();
+  const conn = db_builder.build();
+
+  // wait for subscriptions to be applied before starting http server
+  while (true) {
+    if (subscriptions_applied) {
+      break;
+    }
+    console.debug('waiting for subscriptions to be applied...');
+    const timeout_promise = new Promise<void>((resolve, _) => setTimeout(() => resolve(), 100));
+    await timeout_promise;
+  }
+
+  console.info('starting client endpoint...');
+  const endpoint = client_endpoint(conn);
+  const endpoint_available = new Promise<void>((resolve) => {
+    endpoint
+      .listen(CLIENT_PORT, () => {
+        console.info('Jepsen endpoint listening at', endpoint.address());
+        resolve();
+      });
+
+  });
+  await endpoint_available;
+
+  console.log();
+  console.log('Press Ctrl+C to exit...');
 }
 
 // REST API for Jepsen transactions
@@ -201,18 +229,8 @@ function onConnect(
         }
       }
 
-      const endpoint_available = new Promise<void>((resolve) => {
-        client_endpoint(conn)
-          .listen(CLIENT_PORT, () => {
-            console.info(`Jepsen endpoint running at http://localhost:${CLIENT_PORT}`);
-            resolve();
-          });
-
-      });
-      await endpoint_available;
-
-      console.log();
-      console.log('Press Ctrl+C to exit...');
+      // signal that it's ok to start http server
+      subscriptions_applied = true;
     })
     .onError((ctx: ErrorContext, error?: Error) => {
       console.error('onError: (subscriptionBuilder)');

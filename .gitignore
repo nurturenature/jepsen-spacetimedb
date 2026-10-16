@@ -22,3 +22,6 @@ pom.xml.asc
 
 # Jepsen
 store/
+
+# SpacetimeDB
+stdb-client/.spacetimedb-token
