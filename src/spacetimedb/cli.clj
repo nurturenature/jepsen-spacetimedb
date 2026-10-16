@@ -86,7 +86,7 @@
 
 (defn spacetimedb-test
   "Given options from the CLI, constructs a test map."
-  [{:keys [check-final-txns? ignore-logs? lazyfs? universal-timeout] :as opts}]
+  [{:keys [check-final-txns? ignore-logs? lazyfs? nemesis-interval universal-timeout] :as opts}]
   (let [workload-name (:workload opts)
         workload ((workload/workloads workload-name) opts)
         db       (:db workload)
@@ -107,7 +107,8 @@
                                                      :distribution :normal}}]}
                    :partition  {:targets [:primaries]}
                    :pause      {:targets [nil]}
-                   :power-glitch {}})
+                   :power-glitch {}
+                   :interval   nemesis-interval})
         quiesce-timeout (-> universal-timeout (* 4) (quot 1000))
         generator (gen/phases
                    (gen/log "Workload with nemesis")
