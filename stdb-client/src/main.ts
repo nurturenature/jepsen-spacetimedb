@@ -8,7 +8,7 @@ import {
   ErrorContext,
   EventContext,
 } from './module_bindings/index.js';
-import { Identity } from 'spacetimedb';
+import { DisconnectedError, Identity, UnknownCallResultError } from 'spacetimedb';
 
 // Configuration
 const SPACETIMEDB_HOST = process.env.SPACETIMEDB_HOST ?? 'ws://spacetimedb:3000';
@@ -188,7 +188,14 @@ function client_endpoint(conn: DbConnection): Server {
         // DisconnectedError -> :fail
         // UnknownCallResultError -> :info
         console.error(`[endpoint] error: ${error.toString()}`);
-        const response = JSON.stringify({ 'type': 'info', 'error': error.toString() });
+        let response;
+        if (error instanceof DisconnectedError) {
+          response = JSON.stringify({ 'type': 'fail', 'error': error.toString() });
+        } else if (error instanceof UnknownCallResultError) {
+          response = JSON.stringify({ 'type': 'info', 'error': error.toString() });
+        } else {
+          response = JSON.stringify({ 'type': 'info', 'error': error.toString() });
+        }
 
         console.error(`[endpoint] error: response: "${response}"`);
 
