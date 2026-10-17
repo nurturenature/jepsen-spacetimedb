@@ -185,16 +185,21 @@ function client_endpoint(conn: DbConnection): Server {
         res.end(response);
 
       } catch (error: any) {
-        // DisconnectedError -> :fail
-        // UnknownCallResultError -> :info
         console.error(`[endpoint] error: ${error.toString()}`);
+
+        // convert request txn to response txn
+        const res_txn = [];
+        for (const { f, k, v } of req_txn!) {
+          res_txn.push([f, k, v]);
+        }
+
         let response;
         if (error instanceof DisconnectedError) {
-          response = JSON.stringify({ 'type': 'fail', 'value': req_txn!, 'error': error.toString() });
+          response = JSON.stringify({ 'type': 'fail', 'value': res_txn, 'error': error.toString() });
         } else if (error instanceof UnknownCallResultError) {
-          response = JSON.stringify({ 'type': 'info', 'value': req_txn!, 'error': error.toString() });
+          response = JSON.stringify({ 'type': 'info', 'value': res_txn, 'error': error.toString() });
         } else {
-          response = JSON.stringify({ 'type': 'info', 'value': req_txn!, 'error': error.toString() });
+          response = JSON.stringify({ 'type': 'info', 'value': res_txn, 'error': error.toString() });
         }
 
         console.error(`[endpoint] error: response: "${response}"`);
