@@ -8,7 +8,7 @@ import {
   ErrorContext,
   EventContext,
 } from './module_bindings/index.js';
-import { DisconnectedError, Identity, UnknownCallResultError } from 'spacetimedb';
+import { DisconnectedError, Identity, ReconnectPolicy, UnknownCallResultError } from 'spacetimedb';
 
 // Configuration
 const SPACETIMEDB_HOST = process.env.SPACETIMEDB_HOST ?? 'ws://spacetimedb:3000';
@@ -16,6 +16,12 @@ const SPACETIMEDB_DB_NAME = process.env.SPACETIMEDB_DB_NAME ?? 'test-db';
 const CONFIRMED_READS = JSON.parse(process.env.CONFIRMED_READS ?? 'true');
 const AUTOMATIC_RECONNECT = JSON.parse(process.env.AUTOMATIC_RECONNECT ?? 'true');
 const CLIENT_PORT = Number.parseInt(process.env.CLIENT_PORT || '3000');
+
+// use a more aggressive reconnection policy
+const RECONNECT_POLICY: ReconnectPolicy = {
+  minDelayMs: 500, // default is 1000
+  maxDelayMs: 1000 // default is 30000
+};
 
 // TODO: put types in a shared type location for SpacetimeDB server
 
@@ -40,8 +46,12 @@ async function main(): Promise<void> {
   console.info(`Connecting to SpacetimeDB...`);
   console.info(`\tURI: ${SPACETIMEDB_HOST}`);
   console.info(`\tModule: ${SPACETIMEDB_DB_NAME}`);
-  console.info(`\twithConfirmedReads: ${CONFIRMED_READS}`);
-  console.info(`\twithAutomaticReconnect: ${AUTOMATIC_RECONNECT}`);
+  console.info('\twithConfirmedReads(', CONFIRMED_READS, ')');
+  if (AUTOMATIC_RECONNECT) {
+    console.info('\twithAutomaticReconnect(', RECONNECT_POLICY, ')');
+  } else {
+    console.info('\twithAutomaticReconnect:', AUTOMATIC_RECONNECT);
+  }
 
   // Build and establish connection
   let db_builder = DbConnection
@@ -54,7 +64,9 @@ async function main(): Promise<void> {
     .onAutomaticReconnect(onAutomaticReconnect)
     .onDisconnect(onDisconnect)
     .onConnectError(onConnectError);
-  db_builder = AUTOMATIC_RECONNECT ? db_builder.withAutomaticReconnect() : db_builder;
+  db_builder = AUTOMATIC_RECONNECT
+    ? db_builder.withAutomaticReconnect(RECONNECT_POLICY)
+    : db_builder;
   const conn = db_builder.build();
 
   // wait for subscriptions to be applied before starting http server
