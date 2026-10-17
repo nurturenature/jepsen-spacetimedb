@@ -41,15 +41,7 @@
 
 (defn install-client
   "force-reinstall-repository? will force a full installation."
-  [force-reinstall-repository?]
-  (when force-reinstall-repository?
-    (c/exec :rm :-rf stdb/jepsen-dir))
-
-  (c/exec :mkdir :--parents stdb/jepsen-dir)
-
-  (c/cd stdb/jepsen-dir
-        (stdb/install-repository force-reinstall-repository?))
-
+  []
   ; as SpacetimeDB client is TypeScript, will need npm modules
   (c/cd stdb/client-dir
         (c/exec :npm :install)))
@@ -76,7 +68,9 @@
     (info "setting up client-node" node)
     (install-packages)
 
-    (install-client force-reinstall-repository?)
+    (stdb/install-repository force-reinstall-repository?)
+
+    (install-client)
 
     ; assuming SpacetimeDB server is already started and available for connections
 

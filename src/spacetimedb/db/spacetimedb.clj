@@ -87,26 +87,30 @@
   (install-nodejs))
 
 (defn install-repository
-  "Installs or updates GitHub repository in current directory.
+  "Installs or updates GitHub repository in [[jepsen-dir]].
    `force-reinstall-repository?` deletes repo forcing a full re-installation."
   [force-reinstall-repository?]
   (when force-reinstall-repository?
-    (c/exec :rm :-rf "jepsen-spacetimedb"))
+    (c/exec :rm :-rf jepsen-dir))
 
-  (if (cu/exists? "jepsen-spacetimedb/.git")
-    (do
-      (info "repository jepsen-spacetimedb already exists, pulling")
-      (c/cd "jepsen-spacetimedb"
-            (c/exec :git :pull)))
-    (do
-      (info "repository jepsen-spacetimedb does not exist, cloning")
-      (c/exec :git :clone :-b :main :--depth :1 :--single-branch "https://github.com/nurturenature/jepsen-spacetimedb.git"))))
+  (c/exec :mkdir :--parents jepsen-dir)
+
+  (c/cd jepsen-dir
+        (if (cu/exists? "jepsen-spacetimedb/.git")
+          (do
+            (info "repository jepsen-spacetimedb already exists, pulling")
+            (c/cd "jepsen-spacetimedb"
+                  (c/exec :git :pull)))
+          (do
+            (info "repository jepsen-spacetimedb does not exist, cloning")
+            (c/exec :git :clone :-b :main :--depth :1 :--single-branch "https://github.com/nurturenature/jepsen-spacetimedb.git")))))
 
 (defn install-config-toml
   "Installs given custom SpacetimeDB `config-toml`.
    Assumes on SpacetimeDB node."
   [config-toml]
   (let [target-path (str spacetimedb-data-dir "/config.toml")]
+    (info "installing custom SpacetimeDB config.toml:" config-toml)
     (c/su
      (c/exec :mkdir :--parents spacetimedb-data-dir)
      (c/exec :cp config-toml target-path))))
@@ -144,10 +148,7 @@
 (defn configure-test-db
   "Configure SpacetimeDB for a test-db.
    Expects SpacetimeDB to be started."
-  [force-reinstall-repository?]
-  (c/cd jepsen-dir
-        (install-repository force-reinstall-repository?))
-
+  []
   ; build and publish our SpacetimeDB modules
   (c/cd client-dir
         ; as SpacetimeDB client is TypeScript, will need npm modules
@@ -186,11 +187,12 @@
     (info "setting up SpacetimeDB on" node)
 
     (install-packages)
+    (install-repository force-reinstall-repository?)
     (install-spacetimedb test)
 
     (db/start! this test node)
 
-    (configure-test-db force-reinstall-repository?)
+    (configure-test-db)
 
     (when (not (spacetimedb-alive? test))
       (throw+ {:type :error :error "Unable to start SpacetimeDB!"}))
