@@ -26,6 +26,10 @@
   "TypeScript client directory."
   (str jepsen-dir "/jepsen-spacetimedb/stdb-client"))
 
+(def websocket-config-toml
+  "Custom SpacetimeDB config.toml that favors disconnecting client websockets."
+  (str client-dir "/websocket-config.toml"))
+
 (def pid-file (str jepsen-dir "/spacetimedb.pid"))
 
 (def log-file-short "spacetimedb.log")
@@ -98,8 +102,17 @@
       (info "repository jepsen-spacetimedb does not exist, cloning")
       (c/exec :git :clone :-b :main :--depth :1 :--single-branch "https://github.com/nurturenature/jepsen-spacetimedb.git"))))
 
+(defn install-config-toml
+  "Installs given custom SpacetimeDB `config-toml`.
+   Assumes on SpacetimeDB node."
+  [config-toml]
+  (let [target-path (str spacetimedb-data-dir "/config.toml")]
+    (c/su
+     (c/exec :mkdir :--parents spacetimedb-data-dir)
+     (c/exec :cp config-toml target-path))))
+
 (defn install-spacetimedb
-  [spacetimedb-version force-reinstall-spacetimedb? lazyfs?]
+  [{:keys [spacetimedb-version force-reinstall-spacetimedb? lazyfs? websocket-config-toml?] :as _test}]
   (when force-reinstall-spacetimedb?
     (doseq [file-or-dir (vals spacetimedb-files)]
       (u/meh ; LazyFS may be mounted, Ok to ignore errors
@@ -123,7 +136,10 @@
       (c/exec spacetimedb-binary :server :clear :--data-dir (if lazyfs?
                                                               lazyfs-data-dir
                                                               spacetimedb-data-dir) :--yes)
-      (c/exec spacetimedb-binary :version :use spacetimedb-version))))
+      (c/exec spacetimedb-binary :version :use spacetimedb-version)))
+
+  (when websocket-config-toml?
+    (install-config-toml websocket-config-toml)))
 
 (defn configure-test-db
   "Configure SpacetimeDB for a test-db.
@@ -166,11 +182,11 @@
 (defrecord STDB []
   db/DB
   (setup!
-    [this {:keys [force-reinstall-repository? force-reinstall-spacetimedb? lazyfs? spacetimedb-version] :as test} node]
+    [this {:keys [force-reinstall-repository?] :as test} node]
     (info "setting up SpacetimeDB on" node)
 
     (install-packages)
-    (install-spacetimedb spacetimedb-version force-reinstall-spacetimedb? lazyfs?)
+    (install-spacetimedb test)
 
     (db/start! this test node)
 

@@ -280,6 +280,11 @@
     :parse-fn parse-boolean
     :validate [boolean? "Must be a boolean."]]
 
+   [nil "--websocket-config-toml? BOOLEAN" "Use a custom SpacetimeDB config.toml configured to timeout client websockets?"
+    :default  false
+    :parse-fn parse-boolean
+    :validate [boolean? "Must be a boolean."]]
+
    ["-w" "--workload NAME" "What workload should we run?"
     :default  workload/default-workload
     :parse-fn keyword

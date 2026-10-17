@@ -1,0 +1,24 @@
+# ${reository}/stdb-client/websocket-config.toml
+
+# a config.toml with custom websocket configs
+# compatible with SpacetimeDB 2.12.0
+
+# default standalone install values
+[logs]
+level = "error"
+directives = [
+    "spacetimedb=debug",
+    "spacetimedb_client_api=debug",
+    "spacetimedb_lib=debug",
+    "spacetimedb_standalone=debug",
+    "spacetimedb_commitlog=info",
+    "spacetimedb_durability=info",
+    "axum::rejection=trace",
+]
+
+# tune websocket params to disconnect clients more often
+[websocket]
+ping-interval = "5s"              # default "15s"
+idle-timeout = "10s"              # default "30s"
+close-handshake-timeout = "250ms"
+incoming-queue-length = 2048
