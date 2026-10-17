@@ -5,7 +5,9 @@
             [clj-http.client :as http]
             [jepsen.client :as client]
             [slingshot.slingshot :refer [try+]]
-            [spacetimedb.db.client-node :as client-node]))
+            [spacetimedb.db.client-node :as client-node]
+            [spacetimedb.role :as stdb-role])
+  (:import [java.lang Integer]))
 
 (defn op->json-txn
   "Given an op, encodes its `:value`, a transaction, as a json string."
@@ -33,7 +35,7 @@
 
 (defn invoke
   "Invokes the op against the endpoint and returns the result."
-  [op endpoint timeout]
+  [op endpoint http-timeout]
   (let [body   (-> op
                    (select-keys [:type :f :value]) ; don't expose rest of op map 
                    op->json-txn)]
@@ -41,8 +43,8 @@
      (let [result (http/post endpoint
                              {:body               body
                               :content-type       "application/json"
-                              :socket-timeout     timeout
-                              :connection-timeout timeout
+                              :socket-timeout     http-timeout
+                              :connection-timeout http-timeout
                               :accept             "application/json"})
            op'    (-> result
                       :body
@@ -91,7 +93,7 @@
        (map (fn [[f _k _v]]
               f))
        (into #{})))
-(defrecord SpacetimeDBClient []
+(defrecord SpacetimeDBClient [http-timeout]
   client/Client
   (open!
     [this _test node]
@@ -103,7 +105,7 @@
     [_this _test])
 
   (invoke!
-    [{:keys [node uri] :as _this} {:keys [fs->stdb universal-timeout] :as _test} op]
+    [{:keys [node uri] :as _this} {:keys [fs->stdb] :as _test} op]
     (let [op       (assoc op :node node)
           fs       (op->fs op)
           stdb-fn  (get fs->stdb fs)]
@@ -113,7 +115,7 @@
                           :local-cache "lists/reads/cache"
                           :fail        nil)]
         (let [uri (str uri "/" endpoint)]
-          (invoke op uri universal-timeout))
+          (invoke op uri http-timeout))
         (assoc op
                :type  :fail
                :error (str "No SpacetimeDB function mapped for a txn of fs: " fs)))))
@@ -129,9 +131,23 @@
 
 (defn stdb-client
   "Returns a SpacetimeDB client.
-   Client is wrapped in a [[jepsen.client/timeout]] to ensure that all client calls are bounded by the universal-timeout."
-  [universal-timeout]
-  (client/timeout universal-timeout (SpacetimeDBClient.)))
+   Client does not timeout http requests.
+   Client is role restricted."
+  []
+  (->> Integer/MAX_VALUE ; effectively no timeout
+       SpacetimeDBClient.
+       stdb-role/restricted-client))
+
+(defn timeout-stdb-client
+  "Returns a SpacetimeDB client.
+   Client times out http connections, and is also wrapped in a [[jepsen.client/timeout]].
+   Ensures all client calls are bounded by the given `client-timeout`
+   Client is role restricted."
+  [client-timeout]
+  (->> client-timeout
+       SpacetimeDBClient.
+       (client/timeout client-timeout)
+       stdb-role/restricted-client))
 
 ;; (defrecord SpacetimeDBClientNOOP [conn]
 ;;   client/Client

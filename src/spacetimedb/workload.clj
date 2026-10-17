@@ -27,14 +27,14 @@
         cndb (if watch-client-node?
                (client-node/watched-client-node cndb watchdog-timeout)
                cndb)
-        roles        (stdb-role/roles-map opts)
-        roles-db     (stdb-role/roles-based-db stdb cndb)
-        roles-client (stdb-role/restricted-client (stdb-client/stdb-client universal-timeout))]
+        roles    (stdb-role/roles-map opts)
+        roles-db (stdb-role/roles-based-db stdb cndb)
+        timeout-client (stdb-client/timeout-stdb-client universal-timeout)]
     (merge
      (list-append/test opts)
      {:roles  roles
       :db     roles-db
-      :client roles-client
+      :client timeout-client
       :fs->stdb {#{:append}    :procedure
                  #{:r}         :procedure
                  #{:append :r} :procedure}})))
@@ -113,10 +113,19 @@
                   #{:r}         :local-cache
                   #{:append :r} :fail}})))
 
+(defn client-reconnect
+  "A [[list-append-all-functions]] workload with a client that never times out."
+  [opts]
+  (let [no-timeout-client (stdb-client/stdb-client)]
+    (merge
+     (list-append-all-functions opts)
+     {:client no-timeout-client})))
+
 (def workloads
   "A map of workload names to functions that take CLI options and return
   workload maps."
   {:list-append               list-append
    :list-append-all-functions list-append-all-functions
    :reducer-localcache-only   reducer-localcache-only
+   :client-reconnect          client-reconnect
    :none                      (fn [_] tests/noop-test)})

@@ -98,6 +98,7 @@ function client_endpoint(conn: DbConnection): Server {
     });
 
     req.on('end', async () => {
+      let req_txn: TXN;
       try {
         console.log(`[endpoint]\tbody: ${body}`);
 
@@ -108,7 +109,7 @@ function client_endpoint(conn: DbConnection): Server {
             break;
 
           case "POST" + "/lists/appends/reducer":
-            const appends: TXN = JSON.parse(body) as TXN;
+            req_txn = JSON.parse(body) as TXN;
 
             // TODO: should a txn timeout?
             // if so, here? or let the Jepsen client timeout?
@@ -116,10 +117,10 @@ function client_endpoint(conn: DbConnection): Server {
             // const timeout_promise = new Promise((_, reject) => setTimeout(() => reject(new Error('Transaction in procedure timed out!')), CLIENT_TIMEOUT));
             // const txn_response = await Promise.race([txn_promise, timeout_promise]);
 
-            await conn.reducers.appends({ txn: appends });
+            await conn.reducers.appends({ txn: req_txn });
 
             const appends_result: TXN_RESPONSE = [];
-            for (const { k, v } of appends) {
+            for (const { k, v } of req_txn) {
               appends_result.push(['append', k, v!]);
             }
 
@@ -127,11 +128,11 @@ function client_endpoint(conn: DbConnection): Server {
             break;
 
           case "POST" + "/lists/reads/cache":
-            const reads: TXN = JSON.parse(body) as TXN;
+            req_txn = JSON.parse(body) as TXN;
 
             // build a map with a key for each read mop
             const kv = new Map<number, number[] | null>();
-            for (const { f, k, v } of reads) {
+            for (const { f, k, v } of req_txn) {
               if ((f != 'r') || (v != null)) {
                 throw new Error(`invalid mop: ${{ f: f, k: k, v: v }}`);
               }
@@ -158,14 +159,14 @@ function client_endpoint(conn: DbConnection): Server {
             break;
 
           case "POST" + "/lists/txn/procedure":
-            const txn: TXN = JSON.parse(body) as TXN;
+            req_txn = JSON.parse(body) as TXN;
 
             // TODO: should a txn timeout?
             // if so, here? or let the Jepsen client timeout?
             // const txn_promise = conn.procedures.txn({ txn: txn });
             // const timeout_promise = new Promise((_, reject) => setTimeout(() => reject(new Error('Transaction in procedure timed out!')), CLIENT_TIMEOUT));
             // const txn_response = await Promise.race([txn_promise, timeout_promise]);
-            const txn_response = await conn.procedures.txn({ txn: txn });
+            const txn_response = await conn.procedures.txn({ txn: req_txn });
 
             const result = JSON.parse(txn_response) as TXN_RESPONSE;
 
@@ -189,11 +190,11 @@ function client_endpoint(conn: DbConnection): Server {
         console.error(`[endpoint] error: ${error.toString()}`);
         let response;
         if (error instanceof DisconnectedError) {
-          response = JSON.stringify({ 'type': 'fail', 'error': error.toString() });
+          response = JSON.stringify({ 'type': 'fail', 'value': req_txn!, 'error': error.toString() });
         } else if (error instanceof UnknownCallResultError) {
-          response = JSON.stringify({ 'type': 'info', 'error': error.toString() });
+          response = JSON.stringify({ 'type': 'info', 'value': req_txn!, 'error': error.toString() });
         } else {
-          response = JSON.stringify({ 'type': 'info', 'error': error.toString() });
+          response = JSON.stringify({ 'type': 'info', 'value': req_txn!, 'error': error.toString() });
         }
 
         console.error(`[endpoint] error: response: "${response}"`);
