@@ -31,7 +31,7 @@ on:
         description: "Concurrency (as JSON)"
         type: string
         required: true
-        default: "[ '10', '50', '100' ]"
+        default: "[ '10' ]"
       # ** Due to replication, we have to weaken the consistency model **
       cli-opts:
         description: "CLI opts string"
@@ -49,7 +49,7 @@ on:
         description: "A JSON Map of args (workaround GitHub max inputs)"
         type: string
         required: true
-        default: "{'repeat': [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '10' ], 'timeout-minutes': 4 }"
+        default: "{'repeat': [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20' ], 'timeout-minutes': 4 }"
 
 jobs:
   client-reconnect-no-timeout:
