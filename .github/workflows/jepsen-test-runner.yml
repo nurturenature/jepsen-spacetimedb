@@ -137,6 +137,7 @@ jobs:
         with:
           name: "${{ env.test-title }}-summary"
           path: |
+            ${{ github.workspace }}/store/current/latency-raw.png
             ${{ github.workspace }}/store/current/results.edn
             ${{ github.workspace }}/store/current/tail-jepsen.log
 
@@ -147,3 +148,21 @@ jobs:
           name: "${{ env.test-title }}-${{ job.status }}"
           path: |
             ${{ github.workspace }}/store/current
+
+      - name: "Jepsen Test Artifacts: fail"
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: "${{ env.test-title }}-server-client-logs"
+          path: |
+            ${{ github.workspace }}/store/current/n1
+            ${{ github.workspace }}/store/current/n2
+            ${{ github.workspace }}/store/current/n3
+            ${{ github.workspace }}/store/current/n4
+            ${{ github.workspace }}/store/current/n5
+            ${{ github.workspace }}/store/current/n6
+            ${{ github.workspace }}/store/current/n7
+            ${{ github.workspace }}/store/current/n8
+            ${{ github.workspace }}/store/current/n9
+            ${{ github.workspace }}/store/current/n10
+            ${{ github.workspace }}/store/current/spacetimedb
