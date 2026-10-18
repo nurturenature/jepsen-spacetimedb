@@ -149,6 +149,19 @@ jobs:
           path: |
             ${{ github.workspace }}/store/current
 
+      - name: Server and Client Logs
+        if: ${{ failure() }}
+        run: |
+          nodes=( "n1" "n2" "n3" "n4" "n5" "n6" "n7" "n8" "n9" "n10" )
+          for node in "${nodes[@]}"; do  
+            mkdir -p $GITHUB_WORKSPACE/store/current/$node
+            docker cp $node:/jepsen/jepsen-spacetimedb/client-node.log $GITHUB_WORKSPACE/store/current/$node \
+              || echo "$node:/jepsen/jepsen-spacetimedb/client-node.log did not exist" > $GITHUB_WORKSPACE/store/current/$node/client-node.log
+          done
+          mkdir -p $GITHUB_WORKSPACE/store/current/spacetimedb
+            docker cp spacetimedb:/jepsen/jepsen-spacetimedb/spacetimedb.log $GITHUB_WORKSPACE/store/current/spacetimedb \
+              || echo "spacetimedb:/jepsen/jepsen-spacetimedb/spacetimedb.log did not exist" > $GITHUB_WORKSPACE/store/current/spacetimedb/spacetimedb.log
+
       - name: "Jepsen Test Artifacts: fail"
         if: ${{ failure() }}
         uses: actions/upload-artifact@v6
