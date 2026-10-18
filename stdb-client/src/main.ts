@@ -43,9 +43,11 @@ let subscriptions_applied = false;
 
 // Main entry point
 async function main(): Promise<void> {
-  console.info(`Connecting to SpacetimeDB...`);
-  console.info(`\tURI: ${SPACETIMEDB_HOST}`);
-  console.info(`\tModule: ${SPACETIMEDB_DB_NAME}`);
+  console.info('Jepsen http endpoint <-> SpacetimeDB Connection');
+  console.info('will listen to Jepsen on port:', CLIENT_PORT);
+  console.info('will connect to SpacetimeDB with:');
+  console.info('\tSpacetimeDB host:', SPACETIMEDB_HOST);
+  console.info('\tSpacetimeDB db:', SPACETIMEDB_DB_NAME);
   console.info('\twithConfirmedReads(', CONFIRMED_READS, ')');
   if (AUTOMATIC_RECONNECT) {
     console.info('\twithAutomaticReconnect(', RECONNECT_POLICY, ')');
@@ -243,14 +245,15 @@ function onConnect(
     .onApplied(async ctx => {
       // log current lists in client cache
       const lists = [...ctx.db.lists.iter()];
-      console.log();
-      console.log(`Current lists (${lists.length}):`);
-      if (lists.length === 0) {
-        console.log('\t', '(none yet)');
-      } else {
+      console.info();
+      console.info('SubscriptionBuilder.onApplied() with', lists.length, 'lists');
+      if (lists.length != 0) {
+        const keys = [];
         for (const list of lists) {
-          console.log('\t', { key: list.key, list: list.list });
+          keys.push(list.key);
         }
+        keys.sort();
+        console.info('\tkeys:', keys);
       }
 
       // signal that it's ok to start http server

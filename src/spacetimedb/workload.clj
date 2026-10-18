@@ -16,7 +16,7 @@
 (defn list-append
   "A SpacetimeDB workload where all appends/reads to a keyed append only list
    happen in a transaction in a `procedure`."
-  [{:keys [key-count lazyfs? min-txn-length max-txn-length max-writes-per-key universal-timeout watch-client-node?] :as opts}]
+  [{:keys [client-timeout key-count lazyfs? min-txn-length max-txn-length max-writes-per-key universal-timeout watch-client-node?] :as opts}]
   (assert (and key-count min-txn-length max-txn-length max-writes-per-key)
           (str "opts must specify {key-count min-txn-length max-txn-length max-writes-per-key}: " opts))
   (let [watchdog-timeout (+ 1000 universal-timeout)
@@ -29,7 +29,7 @@
                cndb)
         roles    (stdb-role/roles-map opts)
         roles-db (stdb-role/roles-based-db stdb cndb)
-        timeout-client (stdb-client/timeout-stdb-client universal-timeout)]
+        timeout-client (stdb-client/timeout-stdb-client client-timeout)]
     (merge
      (list-append/test opts)
      {:roles  roles
@@ -113,19 +113,10 @@
                   #{:r}         :local-cache
                   #{:append :r} :fail}})))
 
-(defn client-reconnect
-  "A [[list-append-all-functions]] workload with a client that never times out."
-  [opts]
-  (let [no-timeout-client (stdb-client/stdb-client)]
-    (merge
-     (list-append-all-functions opts)
-     {:client no-timeout-client})))
-
 (def workloads
   "A map of workload names to functions that take CLI options and return
   workload maps."
   {:list-append               list-append
    :list-append-all-functions list-append-all-functions
    :reducer-localcache-only   reducer-localcache-only
-   :client-reconnect          client-reconnect
    :none                      (fn [_] tests/noop-test)})

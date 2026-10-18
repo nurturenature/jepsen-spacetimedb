@@ -178,6 +178,11 @@
     :parse-fn parse-boolean
     :validate [boolean? "Must be a boolean."]]
 
+   [nil "--client-timeout MS" "The number of ms to wait before timing out [[jepsen.client.Client/invoke!]]s."
+    :default  30000
+    :parse-fn parse-long
+    :validate [pos? "Must be a positive integer"]]
+
    [nil "--confirmed-reads? BOOLEAN" "Writes must be confirmed durable before they are read?"
     :default  true
     :parse-fn parse-boolean
@@ -270,7 +275,7 @@
     :parse-fn str
     :validate [string? "Version must be a String."]]
 
-   [nil "--universal-timeout MS" "The number of ms to wait before timing out a connection."
+   [nil "--universal-timeout MS" "The number of ms to wait before timing out operations."
     :default  3000
     :parse-fn parse-long
     :validate [pos? "Must be a positive integer"]]
