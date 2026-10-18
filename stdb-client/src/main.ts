@@ -252,7 +252,7 @@ function onConnect(
         for (const list of lists) {
           keys.push(list.key);
         }
-        keys.sort();
+        keys.sort((a, b) => a - b);
         console.info('\tkeys:', keys);
       }
 
